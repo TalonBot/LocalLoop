@@ -1,18 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { loginTestUser, getMyProducts, createProduct } from '@/lib/api';
+import { loginTestUser, getMyProducts, createProduct, deleteProduct, updateProduct} from '@/lib/api';
 
 
 type Product = {
   id: string;
   name: string;
+  description: string;
   category: string;
   price: number;
   quantity_available: number;
   unit: string;
   is_available: boolean;
 };
+
 
 export default function DashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -56,17 +58,42 @@ const [newProduct, setNewProduct] = useState({
   }
 };
 
-const handleCreateProduct = async () => {
+const handleSubmitProduct = async () => {
   try {
-    await createProduct(newProduct);
-    alert('✅ Product added!');
+    if ((newProduct as any).id) {
+      await updateProduct((newProduct as any).id, newProduct);
+      alert('✏️ Product updated!');
+    } else {
+      await createProduct(newProduct);
+      alert('✅ Product added!');
+    }
     setShowForm(false);
-    fetchProducts(); // refresh list
+    fetchProducts();
   } catch (err) {
-    console.error('Failed to create product:', err);
-    alert('❌ Failed to add product');
+    console.error('Submit failed:', err);
+    alert('❌ Failed to submit product');
   }
 };
+
+
+const handleEdit = (product: Product) => {
+  setNewProduct(product);     // prefill the form
+  setShowForm(true);          // show the form
+};
+
+const handleDelete = async (id: string) => {
+  if (!confirm('Are you sure you want to delete this product?')) return;
+
+  try {
+    await deleteProduct(id);  // use your API method
+    alert('🗑️ Product deleted');
+    fetchProducts();          // refresh
+  } catch (err) {
+    console.error('Delete failed:', err);
+    alert('❌ Could not delete product.');
+  }
+};
+
 
 
   return (
@@ -122,6 +149,20 @@ const handleCreateProduct = async () => {
                   <td className="p-2 border">
                     {product.is_available ? 'Yes' : 'No'}
                   </td>
+                  <td className="p-2 border space-x-2">
+                  <button
+                    onClick={() => handleEdit(product)}
+                    className="px-2 py-1 border rounded text-yellow-400 hover:bg-yellow-900"
+                  >
+                    ✏️ Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(product.id)}
+                    className="px-2 py-1 border rounded text-red-500 hover:bg-red-900"
+                  >
+                    🗑️ Delete
+                  </button>
+                </td>
                 </tr>
               ))}
             </tbody>
@@ -195,11 +236,29 @@ const handleCreateProduct = async () => {
       />
     </div>
     <button
-      onClick={handleCreateProduct}
+      onClick={handleSubmitProduct}
       className="mt-4 px-4 py-2 bg-green-200 rounded hover:bg-green-300"
     >
       ✅ Submit Product
     </button>
+    <button
+  onClick={() => {
+    setShowForm(false);
+    setNewProduct({
+      name: '',
+      description: '',
+      category: 'Honey',
+      price: 0,
+      quantity_available: 1,
+      unit: 'kg',
+      is_available: true,
+    });
+  }}
+  className="mt-4 ml-2 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
+>
+  ❌ Cancel
+</button>
+
   </div>
 )}
 

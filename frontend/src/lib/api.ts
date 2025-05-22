@@ -53,3 +53,29 @@ const res = await fetch('http://localhost:5000/product/new', {
   if (!res.ok) throw new Error(data.message || 'Product creation failed');
   return data;
 }
+
+export async function deleteProduct(id: string) {
+  const res = await fetch(`http://localhost:5000/product/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to delete product');
+  return data;
+}
+
+export async function updateProduct(id: string, updatedProduct: any) {
+  const res = await fetch(`http://localhost:5000/product/${id}`, {
+    method: 'PUT', // ✅ must be PUT, not PATCH
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updatedProduct),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to update product');
+  return data;
+}
