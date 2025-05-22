@@ -10,6 +10,7 @@
     "@supabase/supabase-js": "^2.49.4",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "dompurify": "^3.2.5",
     "dotenv": "^16.5.0",
