@@ -70,4 +70,57 @@ const joinGroupOrder = async (req, res) => {
   }
 };
 
-module.exports = { joinGroupOrder };
+const applyToBeProducer = async (req, res) => {
+  const { consumerId } = req;
+  const { business_name, reason } = req.body;
+  const files = req.files;
+
+  if (!files || files.length === 0) {
+    return res.status(400).json({ error: "No documents uploaded" });
+  }
+
+  const uploadedPaths = [];
+
+  for (const file of files) {
+    const path = `user-${consumerId}/${Date.now()}-${file.originalname}`;
+    const { data, error } = await supabase.storage
+      .from("applications")
+      .upload(path, file.buffer, {
+        contentType: file.mimetype,
+        upsert: true,
+      });
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    uploadedPaths.push(path);
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from("producer_applications")
+    .select("id")
+    .eq("user_id", consumerId)
+    .single();
+
+  if (existing) {
+    return res.status(400).json({ error: "Application already submitted" });
+  }
+
+  const { error: insertError } = await supabase
+    .from("producer_applications")
+    .insert([
+      {
+        user_id: consumerId,
+        business_name,
+        reason,
+        documents: uploadedPaths,
+        status: "pending",
+        created_at: new Date(),
+      },
+    ]);
+
+  if (insertError) return res.status(500).json({ error: insertError.message });
+
+  res.status(201).json({ message: "Application submitted successfully" });
+};
+
+module.exports = { joinGroupOrder, applyToBeProducer };

@@ -6,13 +6,24 @@ const {
   updateCoupon,
   deleteCoupon,
 } = require("../controllers/admin/couponsController");
-const adminMiddleware = require("../middleware/validators/admin/validateAdmin");
+const {
+  getAllProducerApplications,
+  getProducerApplicationById,
+  reviewProducerApplication,
+} = require("../controllers/admin/applicationController");
+const verifyAdmin = require("../middleware/validators/admin/validateAdmin");
 
-router.use(adminMiddleware);
+router.get("/coupon", verifyAdmin, getCoupons);
+router.post("/coupon", verifyAdmin, createCoupon);
+router.put("/coupon/:id", verifyAdmin, updateCoupon);
+router.delete("/coupon/:id", verifyAdmin, deleteCoupon);
 
-router.get("/coupon", getCoupons);
-router.post("/coupon", createCoupon);
-router.put("/coupon/:id", updateCoupon);
-router.delete("/coupon/:id", deleteCoupon);
+router.get("/applications", verifyAdmin, getAllProducerApplications);
+router.get("/applications/:id", verifyAdmin, getProducerApplicationById);
+router.patch(
+  "/applications/:id/review",
+  verifyAdmin,
+  reviewProducerApplication
+);
 
 module.exports = router;
