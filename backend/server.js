@@ -10,13 +10,13 @@ app.use(express.json());
 const authRoutes = require("./routes/auth");
 const productRoutes = require("./routes/product");
 const providerRoutes = require("./routes/provider");
-
+const consumerRoutes = require("./routes/consumer");
 const checkoutRoutes = require("./routes/checkoutRoutes");
 
 app.use("/auth", authRoutes);
 app.use("/product", productRoutes);
 app.use("/provider", providerRoutes);
-
+app.use("/consumer", consumerRoutes);
 app.use("/", checkoutRoutes);
 
 app.listen(port, () => {
