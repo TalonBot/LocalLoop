@@ -24,6 +24,7 @@ router.post(
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
 
+      // ===== Group Order (no coupons applied here) =====
       if (session.metadata.group_order_id) {
         const userId = session.metadata.consumerId;
         const groupOrderId = session.metadata.group_order_id;
@@ -132,13 +133,15 @@ router.post(
         }
       }
 
-      // Regular Product Order
+      // ===== Regular Product Order (with coupon/discount) =====
       try {
         const consumerId = session.metadata.consumerId;
         const pickup_or_delivery = session.metadata.pickup_or_delivery;
         const items = JSON.parse(session.metadata.items);
 
-        let total_price = 0;
+        // Parse total_price from Stripe metadata (includes discount)
+        const total_price = parseFloat(session.metadata.total_price) || 0;
+
         const orderItems = [];
 
         for (const item of items) {
@@ -160,16 +163,14 @@ router.post(
             continue;
           }
 
-          const unit_price = product.price;
-          total_price += unit_price * item.quantity;
-
           orderItems.push({
             product_id: product.id,
             quantity: item.quantity,
-            unit_price,
+            unit_price: product.price, // unit price before discount
           });
         }
 
+        // Insert order with discounted total price
         const { data: orderData, error: orderError } = await supabase
           .from("orders")
           .insert([
@@ -191,15 +192,25 @@ router.post(
 
         const order = orderData[0];
 
+        // Insert order items and update stock
         for (const item of orderItems) {
-          await supabase.from("order_items").insert([
-            {
-              order_id: order.id,
-              product_id: item.product_id,
-              quantity: item.quantity,
-              unit_price: item.unit_price,
-            },
-          ]);
+          const { error: itemInsertError } = await supabase
+            .from("order_items")
+            .insert([
+              {
+                order_id: order.id,
+                product_id: item.product_id,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+              },
+            ]);
+
+          if (itemInsertError) {
+            console.error(
+              `Failed to insert order item for product ${item.product_id}`,
+              itemInsertError
+            );
+          }
 
           // Update product stock
           const { data: productData, error: fetchError } = await supabase
