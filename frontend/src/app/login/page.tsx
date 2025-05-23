@@ -1,54 +1,58 @@
-'use client'; // samo za Next.js App Router
-import { useState } from 'react';
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+export default function Login() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    const savedUser = localStorage.getItem("user");
 
-    const res = await fetch('http://localhost:5000/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ email, password }),
-    });
+    if (!savedUser) {
+      setError("Uporabnik ni registriran");
+      return;
+    }
 
-    const data = await res.json();
-    if (!res.ok) return setError(data.message || 'Login failed');
-
-    alert('Prijava uspešna!');
-    window.location.href = '/';
+    const user = JSON.parse(savedUser);
+    if (user.email === email && user.password === password) {
+      router.push("/dashboard");
+    } else {
+      setError("Napačen email ali geslo");
+    }
   };
 
   return (
-    <main className="p-6 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Prijava</h1>
-      <form onSubmit={handleLogin} className="flex flex-col gap-4">
-        <input
-          type="email"
-          placeholder="E-mail"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          className="p-2 border rounded"
-          required
-        />
-        <input
-          type="password"
-          placeholder="Geslo"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          className="p-2 border rounded"
-          required
-        />
-        {error && <p className="text-red-500">{error}</p>}
-        <button type="submit" className="bg-blue-600 text-white p-2 rounded">
-          Prijavi se
-        </button>
-      </form>
-    </main>
+    <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="bg-gray-800 p-8 rounded-xl shadow-md w-full max-w-md">
+        <h2 className="text-2xl font-bold text-white mb-6 text-center">Prijava</h2>
+        {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+        <form onSubmit={handleLogin} className="space-y-4">
+          <input
+            className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            type="password"
+            placeholder="Geslo"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-200"
+          >
+           Login
+          </button>
+        </form>
+      </div>
+    </div>
   );
 }

@@ -1,76 +1,65 @@
-'use client';
-import { useState } from 'react';
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
-export default function RegisterPage() {
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [error, setError] = useState<string | null>(null);
+export default function Register() {
+  const router = useRouter();
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
-    if (password !== passwordConfirm) {
-      return setError('Gesli se ne ujemata');
+    if (!fullName || !email || !password) {
+      setError("Vsa polja so obvezna");
+      return;
     }
 
-    const res = await fetch('http://localhost:5000/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ email, password, full_name: fullName }),
-    });
+    if (password.length < 6) {
+      setError("Geslo mora imeti vsaj 6 znakov");
+      return;
+    }
 
-    const data = await res.json();
-    if (!res.ok) return setError(data.message || 'Registracija ni uspela');
-
-    alert('Registracija uspešna!');
-    window.location.href = '/login';
+    localStorage.setItem("user", JSON.stringify({ fullName, email, password }));
+    router.push("/login");
   };
 
   return (
-    <main className="p-6 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Registracija</h1>
-      <form onSubmit={handleRegister} className="flex flex-col gap-4">
-        <input
-          type="text"
-          placeholder="Ime in priimek"
-          value={fullName}
-          onChange={e => setFullName(e.target.value)}
-          className="p-2 border rounded"
-          required
-        />
-        <input
-          type="email"
-          placeholder="E-mail"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          className="p-2 border rounded"
-          required
-        />
-        <input
-          type="password"
-          placeholder="Geslo"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          className="p-2 border rounded"
-          required
-        />
-        <input
-          type="password"
-          placeholder="Potrdi geslo"
-          value={passwordConfirm}
-          onChange={e => setPasswordConfirm(e.target.value)}
-          className="p-2 border rounded"
-          required
-        />
-        {error && <p className="text-red-500">{error}</p>}
-        <button type="submit" className="bg-green-600 text-white p-2 rounded">
-          Registriraj se
-        </button>
-      </form>
-    </main>
+    <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="bg-gray-800 p-8 rounded-xl shadow-md w-full max-w-md">
+        <h2 className="text-2xl font-bold text-white mb-6 text-center">Register</h2>
+        {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+        <form onSubmit={handleRegister} className="space-y-4">
+          <input
+            className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Ime in priimek"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+          />
+          <input
+            className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            type="password"
+            placeholder="Geslo"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-200"
+          >
+           Register
+          </button>
+        </form>
+      </div>
+    </div>
   );
 }
