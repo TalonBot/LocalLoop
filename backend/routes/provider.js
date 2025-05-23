@@ -18,5 +18,10 @@ router.put(
 router.put("/story", verifyProvider, setOrUpdateStory);
 router.get("/story", verifyProvider, getMyStory);
 router.delete("/story", verifyProvider, providerController.deleteStory);
+router.post(
+  "/group-orders",
+  verifyProvider,
+  providerController.createGroupOrder
+);
 
 module.exports = router;

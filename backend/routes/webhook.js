@@ -24,6 +24,115 @@ router.post(
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
 
+      if (session.metadata.group_order_id) {
+        const userId = session.metadata.consumerId;
+        const groupOrderId = session.metadata.group_order_id;
+        const items = JSON.parse(session.metadata.items);
+
+        try {
+          const { error: participantError } = await supabase
+            .from("group_orders_participants")
+            .insert([
+              {
+                user_id: userId,
+                group_order_id: groupOrderId,
+                joined_at: new Date(),
+                paid: true,
+              },
+            ]);
+          if (participantError) {
+            console.error("Error inserting participant:", participantError);
+            return res.status(500).end();
+          }
+
+          const groupOrderItems = [];
+          for (const item of items) {
+            const { data: productData, error: priceError } = await supabase
+              .from("group_order_products")
+              .select("unit_price")
+              .eq("group_order_id", groupOrderId)
+              .eq("product_id", item.product_id)
+              .single();
+
+            if (priceError || !productData) {
+              console.error(
+                `Failed to fetch unit_price for product ${item.product_id}`,
+                priceError
+              );
+              continue;
+            }
+
+            groupOrderItems.push({
+              user_id: userId,
+              group_order_id: groupOrderId,
+              product_id: item.product_id,
+              quantity: item.quantity,
+              unit_price: productData.unit_price,
+              created_at: new Date(),
+            });
+          }
+
+          if (groupOrderItems.length > 0) {
+            const { error: itemsInsertError } = await supabase
+              .from("group_order_items")
+              .insert(groupOrderItems);
+
+            if (itemsInsertError) {
+              console.error(
+                "Error inserting group_order_items:",
+                itemsInsertError
+              );
+              return res.status(500).end();
+            }
+          }
+
+          for (const item of items) {
+            const { data: groupProduct, error: fetchError } = await supabase
+              .from("group_order_products")
+              .select("max_quantity")
+              .eq("group_order_id", groupOrderId)
+              .eq("product_id", item.product_id)
+              .single();
+
+            if (fetchError || !groupProduct) {
+              console.error(
+                `Failed to fetch group product stock for ${item.product_id}`,
+                fetchError
+              );
+              continue;
+            }
+
+            const newMaxQty = groupProduct.max_quantity - item.quantity;
+            if (newMaxQty < 0) {
+              console.warn(
+                `max_quantity would go negative for group product ${item.product_id}. Skipping update.`
+              );
+              continue;
+            }
+
+            const { error: updateError } = await supabase
+              .from("group_order_products")
+              .update({ max_quantity: newMaxQty })
+              .eq("group_order_id", groupOrderId)
+              .eq("product_id", item.product_id);
+
+            if (updateError) {
+              console.error(
+                `Failed to update max_quantity for group product ${item.product_id}`,
+                updateError
+              );
+            }
+          }
+
+          console.log(`Group order processed for user ${userId}`);
+          return res.status(200).send("Group order processed");
+        } catch (err) {
+          console.error("Group order error:", err);
+          return res.status(500).end();
+        }
+      }
+
+      // Regular Product Order
       try {
         const consumerId = session.metadata.consumerId;
         const pickup_or_delivery = session.metadata.pickup_or_delivery;
@@ -92,6 +201,7 @@ router.post(
             },
           ]);
 
+          // Update product stock
           const { data: productData, error: fetchError } = await supabase
             .from("products")
             .select("quantity_available")
@@ -131,11 +241,11 @@ router.post(
         console.log("✅ Order created from Stripe checkout:", order.id);
         res.status(200).send("Order created");
       } catch (err) {
-        console.error("Error handling Stripe webhook:", err);
+        console.error("❌ Error handling regular order:", err);
         res.status(500).end();
       }
     } else {
-      res.status(200).end();
+      res.status(200).end(); // Acknowledge all other event types
     }
   }
 );
