@@ -12,7 +12,12 @@ export default function Navbar() {
           href="/product"
           className="px-4 py-2 text-green-700 hover:text-green-900 transition"
         >
-          Produkti
+        </Link>
+        <Link
+          href="/cart"
+          className="px-4 py-2 border border-green-600 text-green-600 rounded hover:bg-green-600 hover:text-white transition"
+        >
+          🛒 Cart
         </Link>
         <Link
           href="/login"

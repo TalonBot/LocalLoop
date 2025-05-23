@@ -67,12 +67,22 @@ const handleSubmitProduct = async () => {
       await createProduct(newProduct);
       alert('✅ Product added!');
     }
+        addToCart(newProduct as Product); // ZA SHRANJEVANJUE V LOCALSTORAGE
+      
     setShowForm(false);
     fetchProducts();
   } catch (err) {
     console.error('Submit failed:', err);
     alert('❌ Failed to submit product');
   }
+};
+
+// Dodajanje v kosarico localStorage
+const addToCart = (product: Product) => {
+  const existing = localStorage.getItem('cart');
+  const cart = existing ? JSON.parse(existing) : [];
+  cart.push(product);
+  localStorage.setItem('cart', JSON.stringify(cart));
 };
 
 
