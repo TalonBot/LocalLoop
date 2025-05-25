@@ -15,14 +15,18 @@ app.use(cors({
 const authRoutes = require("./routes/auth");
 const productRoutes = require("./routes/product");
 const providerRoutes = require("./routes/provider");
-
+const consumerRoutes = require("./routes/consumer");
 const checkoutRoutes = require("./routes/checkoutRoutes");
+const adminRoutes = require("./routes/admin");
+const usersRoutes = require("./routes/users");
 
 app.use("/auth", authRoutes);
 app.use("/product", productRoutes);
 app.use("/provider", providerRoutes);
-
+app.use("/consumer", consumerRoutes);
 app.use("/", checkoutRoutes);
+app.use("/admin", adminRoutes);
+app.use("/users", usersRoutes);
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
