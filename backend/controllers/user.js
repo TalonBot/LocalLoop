@@ -6,15 +6,27 @@ const getProducts = async (req, res) => {
   const limit = parseInt(req.query.limit) || 10;
   const from = (page - 1) * limit;
   const to = from + limit - 1;
+  const price_from = parseFloat(req.query.price_from) || 0;
+  const price_to = parseFloat(req.query.price_to) || Number.MAX_SAFE_INTEGER;
 
-  const { data: products, error } = await supabase
+  let query = supabase
     .from("products")
-    .select("*, product_images(*)")
+    .select("*, product_images(*)", { count: "exact" })
     .range(from, to);
+
+  // Apply price filter
+  query = query.gte("price", price_from).lte("price", price_to);
+
+  const { data: products, error, count } = await query;
 
   if (error) return res.status(500).json({ error: error.message });
 
-  res.json(products);
+  res.json({
+    total: count,
+    page,
+    limit,
+    products,
+  });
 };
 
 const getProductById = async (req, res) => {
@@ -36,23 +48,40 @@ const getProductsByCategory = async (req, res) => {
   const limit = parseInt(req.query.limit) || 10;
   const from = (page - 1) * limit;
   const to = from + limit - 1;
+  const price_from = parseFloat(req.query.price_from) || 0;
+  const price_to = parseFloat(req.query.price_to) || Number.MAX_SAFE_INTEGER;
 
-  const { data: products, error } = await supabase
+  let query = supabase
     .from("products")
-    .select("*, product_images(*)")
+    .select("*, product_images(*)", { count: "exact" })
     .eq("category", category)
     .range(from, to);
 
+  // Apply price filter
+  query = query.gte("price", price_from).lte("price", price_to);
+
+  const { data: products, error, count } = await query;
+
   if (error) return res.status(500).json({ error: error.message });
 
-  res.json(products);
+  res.json({
+    total: count,
+    page,
+    limit,
+    products,
+  });
 };
 
 const getAllProducers = async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
   const offset = (page - 1) * limit;
 
-  const { data, error, count } = await supabase
+  // Fetch producers
+  const {
+    data: producers,
+    error,
+    count,
+  } = await supabase
     .from("users")
     .select("id, full_name, profile_image_url", { count: "exact" })
     .eq("role", "provider")
@@ -60,11 +89,32 @@ const getAllProducers = async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
 
+  // Fetch certifications for all producers in this page
+  const producerIds = producers.map((p) => p.id);
+  const { data: stories, error: storiesError } = await supabase
+    .from("producer_stories")
+    .select("user_id, certifications")
+    .in("user_id", producerIds);
+
+  if (storiesError)
+    return res.status(500).json({ error: storiesError.message });
+
+  // Map certifications to each producer
+  const certMap = {};
+  stories.forEach((story) => {
+    certMap[story.user_id] = story.certifications || [];
+  });
+
+  const producersWithCerts = producers.map((producer) => ({
+    ...producer,
+    certifications: certMap[producer.id] || [],
+  }));
+
   res.json({
     total: count,
     page: Number(page),
     limit: Number(limit),
-    producers: data,
+    producers: producersWithCerts,
   });
 };
 
@@ -203,6 +253,63 @@ const getRecommendations = async (req, res) => {
   }
 };
 
+// Example: backend/controllers/user.js
+const getCategoriesWithCounts = async (req, res) => {
+  const { data, error } = await supabase.from("products").select("category");
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Aggregate counts in JS
+  const counts = {};
+  data.forEach((item) => {
+    if (!item.category) return;
+    counts[item.category] = (counts[item.category] || 0) + 1;
+  });
+
+  const categories = Object.entries(counts).map(([category, count]) => ({
+    category,
+    count,
+  }));
+
+  res.json(categories);
+};
+
+const getPriceRange = async (req, res) => {
+  const { data, error } = await supabase.from("products").select("price");
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const prices = data
+    .map((item) => item.price)
+    .filter((p) => typeof p === "number");
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+
+  res.json({ min, max });
+};
+
+const validateCoupon = async (req, res) => {
+  const { code } = req.params;
+  const { data, error } = await supabase
+    .from("coupons")
+    .select("*")
+    .eq("code", code)
+    .single();
+
+  if (error || !data) {
+    return res.status(404).json({ message: "Coupon not found or invalid." });
+  }
+
+  // Check expiration
+  if (data.expires_at && new Date(data.expires_at) < new Date()) {
+    return res.status(400).json({ message: "Coupon expired." });
+  }
+
+  // Optionally check usage_limit here
+
+  res.json(data);
+};
+
 module.exports = {
   getProducts,
   getProductById,
@@ -210,4 +317,7 @@ module.exports = {
   getAllProducers,
   getProducerById,
   getRecommendations,
+  getCategoriesWithCounts,
+  getPriceRange,
+  validateCoupon,
 };

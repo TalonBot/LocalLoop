@@ -7,9 +7,18 @@ const {
   getAllProducers,
   getProducerById,
   getRecommendations,
+  getCategoriesWithCounts,
+  getPriceRange,
+  validateCoupon,
 } = require("../controllers/user");
 
 router.get("/", getProducts);
+
+router.get("/validate/:code", validateCoupon);
+
+router.get("/category/count", getCategoriesWithCounts);
+
+router.get("/price-range", getPriceRange);
 
 router.get("/:id", getProductById);
 

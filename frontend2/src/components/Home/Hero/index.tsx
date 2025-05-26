@@ -1,103 +1,49 @@
 import React from "react";
-import HeroCarousel from "./HeroCarousel";
 import HeroFeature from "./HeroFeature";
-import Image from "next/image";
 
 const Hero = () => {
   return (
-    <section className="overflow-hidden pb-10 lg:pb-12.5 xl:pb-15 pt-57.5 sm:pt-45 lg:pt-30 xl:pt-51.5 bg-[#E5EAF4]">
+    <section className="overflow-hidden pb-16 pt-32 bg-[#E5EAF4] mt-[140px]">
       <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0">
-        <div className="flex flex-wrap gap-5">
-          <div className="xl:max-w-[757px] w-full">
-            <div className="relative z-1 rounded-[10px] bg-white overflow-hidden">
-              {/* <!-- bg shapes --> */}
-              <Image
-                src="/images/hero/hero-bg.png"
-                alt="hero bg shapes"
-                className="absolute right-0 bottom-0 -z-1"
-                width={534}
-                height={520}
-              />
-
-              <HeroCarousel />
+        <div className="flex flex-col lg:flex-row items-center gap-12">
+          {/* Main hero message */}
+          <div className="w-full lg:w-2/3 flex flex-col items-center lg:items-start text-center lg:text-left">
+            <span className="text-blue font-semibold uppercase tracking-widest mb-4 text-sm">
+              Welcome to LocalLoop
+            </span>
+            <h1 className="font-bold text-4xl md:text-5xl text-dark mb-6 leading-tight">
+              Connecting Local Producers
+              <br />
+              with Consumers
+            </h1>
+            <p className="text-lg text-dark-4 mb-6 max-w-2xl">
+              LocalLoop is your bridge to the freshest, highest-quality products
+              from your region. We empower local farmers, artisans, and small
+              businesses by making their goods easily accessible to you.
+              Discover unique flavors, support your community, and enjoy a more
+              sustainable way to shop.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <a
+                href="/shop-with-sidebar"
+                className="inline-block bg-blue text-white font-medium px-8 py-3 rounded-md shadow hover:bg-blue-dark transition"
+              >
+                Browse Local Products
+              </a>
+              <a
+                href="/about"
+                className="inline-block bg-white border border-blue text-blue font-medium px-8 py-3 rounded-md shadow hover:bg-blue hover:text-white transition"
+              >
+                Learn More About Us
+              </a>
             </div>
           </div>
-
-          <div className="xl:max-w-[393px] w-full">
-            <div className="flex flex-col sm:flex-row xl:flex-col gap-5">
-              <div className="w-full relative rounded-[10px] bg-white p-4 sm:p-7.5">
-                <div className="flex items-center gap-14">
-                  <div>
-                    <h2 className="max-w-[153px] font-semibold text-dark text-xl mb-20">
-                      <a href="#"> iPhone 14 Plus & 14 Pro Max </a>
-                    </h2>
-
-                    <div>
-                      <p className="font-medium text-dark-4 text-custom-sm mb-1.5">
-                        limited time offer
-                      </p>
-                      <span className="flex items-center gap-3">
-                        <span className="font-medium text-heading-5 text-red">
-                          $699
-                        </span>
-                        <span className="font-medium text-2xl text-dark-4 line-through">
-                          $999
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Image
-                      src="/images/hero/hero-02.png"
-                      alt="mobile image"
-                      width={123}
-                      height={161}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="w-full relative rounded-[10px] bg-white p-4 sm:p-7.5">
-                <div className="flex items-center gap-14">
-                  <div>
-                    <h2 className="max-w-[153px] font-semibold text-dark text-xl mb-20">
-                      <a href="#"> Wireless Headphone </a>
-                    </h2>
-
-                    <div>
-                      <p className="font-medium text-dark-4 text-custom-sm mb-1.5">
-                        limited time offer
-                      </p>
-                      <span className="flex items-center gap-3">
-                        <span className="font-medium text-heading-5 text-red">
-                          $699
-                        </span>
-                        <span className="font-medium text-2xl text-dark-4 line-through">
-                          $999
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Image
-                      src="/images/hero/hero-01.png"
-                      alt="mobile image"
-                      width={123}
-                      height={161}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              
-            </div>
+          {/* Features on the right */}
+          <div className="w-full lg:w-1/3 flex justify-center">
+            <HeroFeature />
           </div>
         </div>
       </div>
-
-      {/* <!-- Hero features --> */}
-      <HeroFeature />
     </section>
   );
 };

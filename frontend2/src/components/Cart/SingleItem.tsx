@@ -36,10 +36,21 @@ const SingleItem = ({ item }) => {
       <div className="min-w-[400px]">
         <div className="flex items-center justify-between gap-5">
           <div className="w-full flex items-center gap-5.5">
-            <div className="flex items-center justify-center rounded-[5px] bg-gray-2 max-w-[80px] w-full h-17.5">
-              <Image width={200} height={200} src={item.imgs?.thumbnails[0]} alt="product" />
+            <div className="flex items-center justify-center rounded-[5px] bg-gray-2 max-w-[80px] w-full h-20 overflow-hidden">
+              {item.imgs?.thumbnails[0] ? (
+                <Image
+                  width={80}
+                  height={80}
+                  src={item.imgs.thumbnails[0]}
+                  alt="product"
+                  className="object-contain w-full h-full"
+                />
+              ) : (
+                <div className="w-[80px] h-[80px] flex items-center justify-center text-gray-400 text-xs">
+                  No Image
+                </div>
+              )}
             </div>
-
             <div>
               <h3 className="text-dark ease-out duration-200 hover:text-blue">
                 <a href="#"> {item.title} </a>

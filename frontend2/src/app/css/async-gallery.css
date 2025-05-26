@@ -50,7 +50,7 @@
   padding: 10px;
 }
 .asyncGallery__ItemImage img {
-  margin: 0 auto;
+  margin: 0;
   display: block;
 }
 

@@ -3,6 +3,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { useCallback, useRef, useEffect } from "react";
 import data from "./categoryData";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 // Import Swiper styles
 import "swiper/css/navigation";
@@ -11,6 +12,7 @@ import SingleItem from "./SingleItem";
 
 const Categories = () => {
   const sliderRef = useRef(null);
+  const router = useRouter();
 
   const handlePrev = useCallback(() => {
     if (!sliderRef.current) return;
@@ -120,23 +122,25 @@ const Categories = () => {
             ref={sliderRef}
             slidesPerView={6}
             breakpoints={{
-              // when window width is >= 640px
-              0: {
-                slidesPerView: 2,
-              },
-              1000: {
-                slidesPerView: 4,
-                // spaceBetween: 4,
-              },
-              // when window width is >= 768px
-              1200: {
-                slidesPerView: 6,
-              },
+              0: { slidesPerView: 2 },
+              1000: { slidesPerView: 4 },
+              1200: { slidesPerView: 6 },
             }}
           >
             {data.map((item, key) => (
               <SwiperSlide key={key}>
-                <SingleItem item={item} />
+                <div
+                  onClick={() =>
+                    router.push(
+                      `/shop-with-sidebar?category=${encodeURIComponent(
+                        item.title
+                      )}`
+                    )
+                  }
+                  className="cursor-pointer"
+                >
+                  <SingleItem item={item} />
+                </div>
               </SwiperSlide>
             ))}
           </Swiper>

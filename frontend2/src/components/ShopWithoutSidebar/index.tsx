@@ -1,21 +1,47 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Breadcrumb from "../Common/Breadcrumb";
-
 import SingleGridItem from "../Shop/SingleGridItem";
 import SingleListItem from "../Shop/SingleListItem";
 import CustomSelect from "../ShopWithSidebar/CustomSelect";
 
-import shopData from "../Shop/shopData";
-
 const ShopWithoutSidebar = () => {
   const [productStyle, setProductStyle] = useState("grid");
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [limit, setLimit] = useState(10); // or whatever your backend default is
+  const [sort, setSort] = useState("latest");
 
   const options = [
-    { label: "Latest Products", value: "0" },
-    { label: "Best Selling", value: "1" },
-    { label: "Old Products", value: "2" },
+    { label: "Latest Products", value: "latest" },
+    { label: "Best Selling", value: "best" },
+    { label: "Old Products", value: "old" },
   ];
+
+  useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams({
+      page: currentPage.toString(),
+      limit: limit.toString(),
+      sort,
+    });
+    fetch(`http://localhost:5000/users?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setProducts(data.products);
+        setTotal(data.total);
+        setLoading(false);
+      })
+      .catch(() => {
+        setProducts([]);
+        setTotal(0);
+        setLoading(false);
+      });
+  }, [currentPage, limit, sort]);
+
+  const totalPages = Math.ceil(total / limit);
 
   return (
     <>
@@ -32,14 +58,19 @@ const ShopWithoutSidebar = () => {
                 <div className="flex items-center justify-between">
                   {/* <!-- top bar left --> */}
                   <div className="flex flex-wrap items-center gap-4">
-                    <CustomSelect options={options} />
-
+                    <CustomSelect
+                      options={options}
+                      value={sort}
+                      onChange={(val) => setSort(val)}
+                    />
                     <p>
-                      Showing <span className="text-dark">9 of 50</span>{" "}
+                      Showing{" "}
+                      <span className="text-dark">
+                        {products.length} of {total}
+                      </span>{" "}
                       Products
                     </p>
                   </div>
-
                   {/* <!-- top bar right --> */}
                   <div className="flex items-center gap-2.5">
                     <button
@@ -51,6 +82,7 @@ const ShopWithoutSidebar = () => {
                           : "text-dark bg-gray-1 border-gray-3"
                       } flex items-center justify-center w-10.5 h-9 rounded-[5px] border ease-out duration-200 hover:bg-blue hover:border-blue hover:text-white`}
                     >
+                      {/* ...grid svg... */}{" "}
                       <svg
                         className="fill-current"
                         width="18"
@@ -95,6 +127,7 @@ const ShopWithoutSidebar = () => {
                           : "text-dark bg-gray-1 border-gray-3"
                       } flex items-center justify-center w-10.5 h-9 rounded-[5px] border ease-out duration-200 hover:bg-blue hover:border-blue hover:text-white`}
                     >
+                      {/* ...list svg... */}
                       <svg
                         className="fill-current"
                         width="18"
@@ -120,7 +153,6 @@ const ShopWithoutSidebar = () => {
                   </div>
                 </div>
               </div>
-
               {/* <!-- Products Grid Tab Content Start --> */}
               <div
                 className={`${
@@ -129,11 +161,21 @@ const ShopWithoutSidebar = () => {
                     : "flex flex-col gap-7.5"
                 }`}
               >
-                {shopData.map((item, key) =>
-                  productStyle === "grid" ? (
-                    <SingleGridItem item={item} key={key} />
-                  ) : (
-                    <SingleListItem item={item} key={key} />
+                {loading ? (
+                  <div className="col-span-4 text-center py-10">
+                    Loading products...
+                  </div>
+                ) : products.length === 0 ? (
+                  <div className="col-span-4 text-center py-10">
+                    No products found.
+                  </div>
+                ) : (
+                  products.map((item) =>
+                    productStyle === "grid" ? (
+                      <SingleGridItem item={item} key={item.id} />
+                    ) : (
+                      <SingleListItem item={item} key={item.id} />
+                    )
                   )
                 )}
               </div>
@@ -145,12 +187,15 @@ const ShopWithoutSidebar = () => {
                   <ul className="flex items-center">
                     <li>
                       <button
-                        id="paginationLeft"
-                        aria-label="button for pagination left"
+                        aria-label="Previous page"
                         type="button"
-                        disabled
-                        className="flex items-center justify-center w-8 h-9 ease-out duration-200 rounded-[3px disabled:text-gray-4"
+                        disabled={currentPage === 1}
+                        onClick={() =>
+                          setCurrentPage((p) => Math.max(1, p - 1))
+                        }
+                        className="flex items-center justify-center w-8 h-9 rounded-[3px] disabled:text-gray-4"
                       >
+                        {/* ...left arrow svg... */}
                         <svg
                           className="fill-current"
                           width="18"
@@ -166,77 +211,31 @@ const ShopWithoutSidebar = () => {
                         </svg>
                       </button>
                     </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] bg-blue text-white hover:text-white hover:bg-blue"
-                      >
-                        1
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        2
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        3
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        4
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        5
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        ...
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        10
-                      </a>
-                    </li>
-
+                    {Array.from({ length: totalPages }, (_, i) => (
+                      <li key={i + 1}>
+                        <button
+                          onClick={() => setCurrentPage(i + 1)}
+                          className={`flex py-1.5 px-3.5 duration-200 rounded-[3px] ${
+                            currentPage === i + 1
+                              ? "bg-blue text-white"
+                              : "hover:text-white hover:bg-blue"
+                          }`}
+                        >
+                          {i + 1}
+                        </button>
+                      </li>
+                    ))}
                     <li>
                       <button
-                        id="paginationLeft"
-                        aria-label="button for pagination left"
+                        aria-label="Next page"
                         type="button"
-                        className="flex items-center justify-center w-8 h-9 ease-out duration-200 rounded-[3px] hover:text-white hover:bg-blue disabled:text-gray-4"
+                        disabled={currentPage === totalPages}
+                        onClick={() =>
+                          setCurrentPage((p) => Math.min(totalPages, p + 1))
+                        }
+                        className="flex items-center justify-center w-8 h-9 rounded-[3px] disabled:text-gray-4"
                       >
+                        {/* ...right arrow svg... */}
                         <svg
                           className="fill-current"
                           width="18"

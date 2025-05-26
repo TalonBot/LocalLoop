@@ -1,9 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 
 const Discount = () => {
+  const [couponInput, setCouponInput] = useState("");
+
+  const handleApply = (e) => {
+    e.preventDefault();
+    if (couponInput) {
+      localStorage.setItem("cartCoupon", couponInput);
+      alert("Coupon saved! It will be applied at checkout.");
+    }
+  };
+
   return (
     <div className="lg:max-w-[670px] w-full">
-      <form>
+      <form onSubmit={handleApply}>
         {/* <!-- coupon box --> */}
         <div className="bg-white shadow-1 rounded-[10px]">
           <div className="border-b border-gray-3 py-5 px-4 sm:px-5.5">
@@ -19,6 +29,8 @@ const Discount = () => {
                   id="coupon"
                   placeholder="Enter coupon code"
                   className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-2.5 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value)}
                 />
               </div>
 

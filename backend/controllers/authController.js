@@ -26,6 +26,14 @@ const loginUser = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Check if user is registered with OAuth
+    if (data.auth_provider === "oauth") {
+      return res.status(400).json({
+        message:
+          "This account was registered using Google OAuth. Please log in with Google.",
+      });
+    }
+
     const isMatch = await bcrypt.compare(password, data.password_hash);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });

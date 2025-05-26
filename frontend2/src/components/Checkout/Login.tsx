@@ -1,7 +1,55 @@
 import React, { useState } from "react";
+import { useAppDispatch, useAppSelector } from "@/redux/store";
+import {
+  loginStart,
+  loginSuccess,
+  loginFailure,
+} from "@/redux/features/authSlice";
 
 const Login = () => {
   const [dropdown, setDropdown] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const dispatch = useAppDispatch();
+  const loading = useAppSelector((state) => state.authReducer.loading);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    dispatch(loginStart());
+
+    try {
+      const response = await fetch("http://localhost:5000/auth/login", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      dispatch(
+        loginSuccess({
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          role: data.user.role,
+        })
+      );
+
+      setDropdown(false); // Close dropdown on success
+    } catch (err: any) {
+      dispatch(loginFailure(err.message));
+      setError(err.message || "Login failed");
+    }
+  };
 
   return (
     <div className="bg-white shadow-1 rounded-[10px]">
@@ -44,39 +92,51 @@ const Login = () => {
           If you didn&apos;t Logged in, Please Log in first.
         </p>
 
-        <div className="mb-5">
-          <label htmlFor="name" className="block mb-2.5">
-            Username or Email
-          </label>
+        <div>
+          <div className="mb-5">
+            <label htmlFor="email" className="block mb-2.5">
+              Username or Email
+            </label>
+            <input
+              type="text"
+              name="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-2.5 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
+              required={dropdown}
+            />
+          </div>
 
-          <input
-            type="text"
-            name="name"
-            id="name"
-            className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-2.5 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
-          />
+          <div className="mb-5">
+            <label htmlFor="password" className="block mb-2.5">
+              Password
+            </label>
+            <input
+              type="password"
+              name="password"
+              id="password"
+              autoComplete="on"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-2.5 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
+              required={dropdown}
+            />
+          </div>
+
+          {error && (
+            <p className="text-red-500 text-sm mt-2 text-center">{error}</p>
+          )}
+
+          <button
+            type="button"
+            className="inline-flex font-medium text-white bg-blue py-3 px-10.5 rounded-md ease-out duration-200 hover:bg-blue-dark"
+            disabled={loading}
+            onClick={handleSubmit}
+          >
+            {loading ? "Logging in..." : "Login"}
+          </button>
         </div>
-
-        <div className="mb-5">
-          <label htmlFor="password" className="block mb-2.5">
-            Password
-          </label>
-
-          <input
-            type="password"
-            name="password"
-            id="password"
-            autoComplete="on"
-            className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-2.5 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="inline-flex font-medium text-white bg-blue py-3 px-10.5 rounded-md ease-out duration-200 hover:bg-blue-dark"
-        >
-          Login
-        </button>
       </div>
     </div>
   );

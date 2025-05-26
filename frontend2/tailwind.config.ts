@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
-
 const defaultTheme = require("tailwindcss/defaultTheme");
+import colors from "tailwindcss/colors";
 
 const config: Config = {
   content: [
@@ -25,6 +25,8 @@ const config: Config = {
       current: "currentColor",
       transparent: "transparent",
       white: "#FFFFFF",
+      black: "#000000",
+      ...colors, // gives you all tailwind default colors (including slate, indigo, emerald, etc.)
       body: "#6C6F93",
       meta: {
         DEFAULT: "#F7F9FC",
@@ -41,6 +43,16 @@ const config: Config = {
         5: "#BBBEC9",
       },
       gray: {
+        50: "#f9fafb",
+        100: "#f3f4f6",
+        200: "#e5e7eb",
+        300: "#d1d5db",
+        400: "#9ca3af",
+        500: "#6b7280",
+        600: "#374151",
+        700: "#1f2937",
+        800: "#111827",
+        900: "#030712",
         DEFAULT: "#F3F5F6",
         1: "#F9FAFB",
         2: "#F3F4F6",
@@ -51,6 +63,16 @@ const config: Config = {
         7: "#374151",
       },
       blue: {
+        50: "#eff6ff",
+        100: "#dbeafe",
+        200: "#bfdbfe",
+        300: "#93c5fd",
+        400: "#60a5fa",
+        500: "#3b82f6",
+        600: "#2563eb",
+        700: "#1d4ed8",
+        800: "#1e40af",
+        900: "#1e3a8a",
         DEFAULT: "#3C50E0",
         dark: "#1C3FB7",
         light: "#5475E5",
@@ -60,6 +82,16 @@ const config: Config = {
         "light-5": "#E1E8FF",
       },
       red: {
+        50: "#fef2f2",
+        100: "#fee2e2",
+        200: "#fecaca",
+        300: "#fca5a5",
+        400: "#f87171",
+        500: "#ef4444",
+        600: "#dc2626",
+        700: "#b91c1c",
+        800: "#991b1b",
+        900: "#7f1d1d",
         DEFAULT: "#F23030",
         dark: "#E10E0E",
         light: "#F56060",
@@ -70,6 +102,16 @@ const config: Config = {
         "light-6": "#FEF3F3",
       },
       green: {
+        50: "#f0fdf4",
+        100: "#dcfce7",
+        200: "#bbf7d0",
+        300: "#86efac",
+        400: "#4ade80",
+        500: "#22c55e",
+        600: "#16a34a",
+        700: "#15803d",
+        800: "#166534",
+        900: "#14532d",
         DEFAULT: "#22AD5C",
         dark: "#1A8245",
         light: "#2CD673",
@@ -80,6 +122,16 @@ const config: Config = {
         "light-6": "#DAF8E6",
       },
       yellow: {
+        50: "#fefce8",
+        100: "#fef9c3",
+        200: "#fef08a",
+        300: "#fde047",
+        400: "#facc15",
+        500: "#eab308",
+        600: "#ca8a04",
+        700: "#a16207",
+        800: "#854d0e",
+        900: "#713f12",
         DEFAULT: "#FBBF24",
         dark: "#F59E0B",
         "dark-2": "#D97706",
@@ -93,6 +145,16 @@ const config: Config = {
         dark: "#06A09B",
       },
       orange: {
+        50: "#fff7ed",
+        100: "#ffedd5",
+        200: "#fed7aa",
+        300: "#fdba74",
+        400: "#fb923c",
+        500: "#f59e42",
+        600: "#ea580c",
+        700: "#c2410c",
+        800: "#9a3412",
+        900: "#7c2d12",
         DEFAULT: "#F27430",
         dark: "#E1580E",
       },

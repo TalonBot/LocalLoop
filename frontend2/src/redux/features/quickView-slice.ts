@@ -5,24 +5,29 @@ type InitialState = {
   value: Product;
 };
 
-const initialState = {
+const initialState: InitialState = {
   value: {
-    title: "",
-    reviews: 0,
+    id: "",
+    producer_id: "",
+    name: "",
+    description: "",
+    category: "",
     price: 0,
     discountedPrice: 0,
-    img: "",
-    id: 0,
-    images: [],
-    imgs: { thumbnails: [], previews: [] },
-  } as Product,
-} as InitialState;
+    quantity_available: 0,
+    unit: "",
+    is_available: false,
+    created_at: "",
+    modified_at: "",
+    product_images: [],
+  },
+};
 
 export const quickView = createSlice({
   name: "quickView",
   initialState,
   reducers: {
-    updateQuickView: (_, action) => {
+    updateQuickView: (_, action: PayloadAction<Product>) => {
       return {
         value: {
           ...action.payload,
