@@ -207,8 +207,212 @@ const createGroupOrder = async (req, res) => {
     groupOrderId,
   });
 };
+
+const getProviderInfo = async (req, res) => {
+  try {
+    const providerId = req.providerId;
+
+    if (!providerId) {
+      return res.status(400).json({ message: "Provider ID is required" });
+    }
+
+    const { data: provider, error } = await supabase
+      .from("users")
+      .select(
+        "id, full_name, profile_image_url, email, created_at, modified_at"
+      )
+      .eq("id", providerId)
+      .single();
+
+    if (error) {
+      return res
+        .status(500)
+        .json({ message: "Failed to fetch provider info", error });
+    }
+
+    if (!provider) {
+      return res.status(404).json({ message: "Provider not found" });
+    }
+
+    res.status(200).json({ provider });
+  } catch (err) {
+    console.error("Get provider info error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const getProviderRevenue = async (req, res) => {
+  try {
+    const providerId = req.providerId;
+    const { timeframe } = req.query;
+
+    let startDate = null;
+    const now = new Date();
+
+    switch (timeframe) {
+      case "day":
+        startDate = new Date(now.setHours(0, 0, 0, 0));
+        break;
+      case "week":
+        startDate = new Date(now.setDate(now.getDate() - 7));
+        break;
+      case "month":
+        startDate = new Date(now.setMonth(now.getMonth() - 1));
+        break;
+      case "year":
+        startDate = new Date(now.setFullYear(now.getFullYear() - 1));
+        break;
+    }
+
+    const { data: orderItems, error } = await supabase
+      .from("order_items")
+      .select(
+        `
+        id,
+        quantity,
+        unit_price,
+        product_id,
+        order_id,
+        products:product_id (
+          id,
+          name,
+          price,
+          producer_id
+        ),
+        orders:order_id (
+          id,
+          status,
+          created_at
+        )
+      `
+      );
+
+    if (error) {
+      return res.status(500).json({
+        message: "Failed to fetch order items",
+        error,
+      });
+    }
+
+    const filteredItems = orderItems.filter((item) => {
+      const isOwned = item.products?.producer_id === providerId;
+      const isCompleted = item.orders?.status === "paid";
+      const isInTimeframe =
+        !startDate || new Date(item.orders?.created_at) >= startDate;
+      return isOwned && isCompleted && isInTimeframe;
+    });
+
+    const totalRevenue = filteredItems.reduce((acc, item) => {
+      return acc + (item.quantity || 0) * (item.unit_price || 0);
+    }, 0);
+
+    const productSales = filteredItems.reduce((acc, item) => {
+      const product = item.products;
+      if (!product) return acc;
+
+      if (!acc[product.id]) {
+        acc[product.id] = {
+          product,
+          quantity: 0,
+          total_revenue: 0,
+        };
+      }
+      acc[product.id].quantity += item.quantity || 0;
+      acc[product.id].total_revenue +=
+        (item.quantity || 0) * (item.unit_price || 0);
+
+      return acc;
+    }, {});
+
+    const topProducts = Object.values(productSales)
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 5)
+      .map(({ product, quantity, total_revenue }) => ({
+        product_id: product.id,
+        name: product.name,
+        quantity,
+        total_revenue: parseFloat(total_revenue.toFixed(2)),
+        unit_price: product.price || 0,
+      }));
+
+    return res.status(200).json({
+      revenue: {
+        orders: parseFloat(totalRevenue.toFixed(2)),
+        total: parseFloat(totalRevenue.toFixed(2)),
+      },
+      timeframe: timeframe || "all",
+      topProducts,
+      orderCount: filteredItems.length,
+      timestamp: new Date(),
+    });
+  } catch (err) {
+    console.error("Revenue calculation error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const getProviderOrders = async (req, res) => {
+  try {
+    const providerId = req.providerId;
+
+    const { data: orders, error } = await supabase
+      .from("orders")
+      .select(
+        `
+        id,
+        consumer_id,
+        total_price,
+        status,
+        pickup_or_delivery,
+        created_at,
+        order_items (
+          id,
+          product_id,
+          quantity,
+          unit_price,
+          product:product_id (
+            name,
+            unit,
+            producer_id
+          )
+        )
+      `
+      )
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      return res.status(500).json({
+        message: "Failed to fetch orders",
+        error,
+      });
+    }
+
+    const filteredOrders = orders
+      .map((order) => {
+        const itemsForProvider = order.order_items.filter(
+          (item) => item.product?.producer_id === providerId
+        );
+        if (itemsForProvider.length === 0) return null;
+
+        return {
+          ...order,
+          order_items: itemsForProvider,
+        };
+      })
+      .filter(Boolean);
+
+    return res.status(200).json(filteredOrders);
+  } catch (err) {
+    console.error("Get provider orders error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 module.exports = {
   updateProfile,
   deleteStory,
   createGroupOrder,
+  getProviderRevenue,
+  getProviderInfo,
+  getProviderOrders,
 };

@@ -2,7 +2,8 @@ const stripe = require("../config/stripe");
 const supabase = require("../config/supabase");
 
 const createCheckoutSession = async (req, res) => {
-  const { items, pickup_or_delivery, coupon_code } = req.body;
+  const { items, pickup_or_delivery, coupon_code, notes, delivery_details } =
+    req.body;
   const { consumerId } = req;
 
   if (!items || items.length === 0) {
@@ -13,6 +14,7 @@ const createCheckoutSession = async (req, res) => {
     let discountPercent = 0;
 
     if (coupon_code) {
+      // Fetch coupon and check if active & valid
       const { data: coupon, error: couponError } = await supabase
         .from("coupons")
         .select("*")
@@ -34,6 +36,28 @@ const createCheckoutSession = async (req, res) => {
       ) {
         return res.status(400).json({ message: "Coupon not valid currently" });
       }
+
+      // --- NEW: Check if user already used this coupon ---
+      const { data: usageRecord, error: usageError } = await supabase
+        .from("coupon_usage")
+        .select("*")
+        .eq("coupon_id", coupon.id)
+        .eq("user_id", consumerId)
+        .single();
+
+      if (usageError && usageError.code !== "PGRST116") {
+        // PGRST116 means no rows found, which is fine here
+        console.error("Error checking coupon usage:", usageError);
+        return res
+          .status(500)
+          .json({ message: "Error validating coupon usage" });
+      }
+      if (usageRecord) {
+        return res
+          .status(400)
+          .json({ message: "Coupon already used by this user" });
+      }
+      // ---------------------------------------------------
 
       discountPercent = coupon.discount_percent;
     }
@@ -60,7 +84,6 @@ const createCheckoutSession = async (req, res) => {
           .json({ message: `Insufficient stock for ${product.name}` });
       }
 
-      // Apply discount to product price if applicable
       const discountedPrice =
         discountPercent > 0
           ? product.price * (1 - discountPercent / 100)
@@ -74,9 +97,25 @@ const createCheckoutSession = async (req, res) => {
           product_data: {
             name: product.name,
           },
-          unit_amount: Math.round(discountedPrice * 100), // cents, must be integer >= 0
+          unit_amount: Math.round(discountedPrice * 100),
         },
         quantity: item.quantity,
+      });
+    }
+
+    if (pickup_or_delivery === "delivery") {
+      const deliveryFee = 15.0;
+      total_price += deliveryFee;
+
+      line_items.push({
+        price_data: {
+          currency: "eur",
+          product_data: {
+            name: "Delivery Fee",
+          },
+          unit_amount: deliveryFee * 100,
+        },
+        quantity: 1,
       });
     }
 
@@ -93,6 +132,10 @@ const createCheckoutSession = async (req, res) => {
         total_price: total_price.toFixed(2),
         coupon_code: coupon_code || "",
         discount_percent: discountPercent.toFixed(2),
+        notes: notes || "",
+        delivery_details: delivery_details
+          ? JSON.stringify(delivery_details)
+          : "",
       },
     });
 

@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import Breadcrumb from "../Common/Breadcrumb";
 import Login from "./Login";
-import Shipping from "./Shipping";
 import PaymentMethod from "./PaymentMethod";
 import Coupon from "./Coupon";
 import Billing from "./Billing";
@@ -22,7 +21,17 @@ const Checkout = () => {
   const [couponError, setCouponError] = useState("");
   const [isApplying, setIsApplying] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
-  const [payment, setPayment] = useState("cash");
+  const [notes, setNotes] = useState("");
+
+  const [billingForm, setBillingForm] = useState({
+    address: "",
+    city: "",
+    country: "",
+  });
+
+  const handleBillingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBillingForm({ ...billingForm, [e.target.name]: e.target.value });
+  };
 
   const handleApplyCoupon = async () => {
     setCouponError("");
@@ -62,53 +71,63 @@ const Checkout = () => {
   const discount = coupon ? (cartTotal * coupon.discount_percent) / 100 : 0;
   const totalWithDiscount = cartTotal - discount + shippingFee;
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCheckoutError("");
 
+    // Ensure user is logged in before submission
     if (!user) {
       setCheckoutError("You must be logged in to checkout.");
       return;
     }
 
-    // Only handle Stripe payment here
-    if (payment === "stripe") {
-      try {
-        const response = await fetch(
-          "http://localhost:5000/create-checkout-session",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include", // if you need cookies/session
-            body: JSON.stringify({
-              items: cartItems.map((item) => ({
-                product_id: item.id,
-                quantity: item.quantity,
-              })),
-              pickup_or_delivery: shippingMethod, // e.g. "pickup" or "delivery"
-              coupon_code: couponCode || null,
-            }),
-          }
-        );
-
-        const data = await response.json();
-        if (response.ok && data.url) {
-          window.location.href = data.url; // Redirect to Stripe Checkout
-        } else {
-          setCheckoutError(data.message || "Failed to start payment session.");
-        }
-      } catch (err) {
-        setCheckoutError("Failed to start payment session.");
+    // If shipping is delivery, validate required fields
+    if (shippingMethod === "delivery") {
+      if (!billingForm.address || !billingForm.city || !billingForm.country) {
+        setCheckoutError("Please fill out all delivery address fields.");
+        return;
       }
-      return;
     }
 
-    // Handle cash on delivery or other payment methods here
-    if (payment === "cash") {
-      // ...your logic for cash on delivery...
-      alert("Order placed with cash on delivery!");
+    try {
+      const response = await fetch(
+        "http://localhost:5000/create-checkout-session",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include", // if you need cookies/session
+          body: JSON.stringify({
+            items: cartItems.map((item) => ({
+              product_id: item.id,
+              quantity: item.quantity,
+            })),
+            pickup_or_delivery: shippingMethod,
+            coupon_code: couponCode || null,
+            notes: notes,
+
+            delivery_details:
+              shippingMethod === "delivery"
+                ? {
+                    address: billingForm.address,
+                    city: billingForm.city,
+                    country: billingForm.country,
+                    notes: notes,
+                  }
+                : null,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (response.ok && data.url) {
+        window.location.href = data.url; // Redirect to Stripe Checkout
+      } else {
+        setCheckoutError(data.message || "Failed to start payment session.");
+      }
+    } catch (err) {
+      setCheckoutError("Failed to start payment session.");
     }
   };
 
@@ -121,23 +140,34 @@ const Checkout = () => {
             <div className="flex flex-col lg:flex-row gap-7.5 xl:gap-11">
               {/* <!-- checkout left --> */}
               <div className="lg:max-w-[670px] w-full">
-                <Login />
-                <Billing />
-                <Shipping />
-                <div className="bg-white shadow-1 rounded-[10px] p-4 sm:p-8.5 mt-7.5">
-                  <div>
-                    <label htmlFor="notes" className="block mb-2.5">
-                      Other Notes (optional)
-                    </label>
-                    <textarea
-                      name="notes"
-                      id="notes"
-                      rows={5}
-                      placeholder="Notes about your order, e.g. special notes for delivery."
-                      className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full p-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
-                    ></textarea>
-                  </div>
-                </div>
+                {/* Conditionally render Login if user is not logged in */}
+                {!user && <Login />}
+
+                {/* Conditionally render Billing and Notes sections */}
+                {shippingMethod === "delivery" && (
+                  <>
+                    <Billing
+                      form={billingForm}
+                      handleChange={handleBillingChange}
+                    />
+
+                    <div className="bg-white shadow-1 rounded-[10px] p-4 sm:p-8.5 mt-7.5">
+                      <div>
+                        <label htmlFor="notes" className="block mb-2.5">
+                          Other Notes (optional)
+                        </label>
+                        <textarea
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          name="notes"
+                          rows={5}
+                          placeholder="Notes about your order, e.g. special notes for delivery."
+                          className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full p-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
+                        ></textarea>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* <!-- checkout right --> */}
@@ -262,8 +292,6 @@ const Checkout = () => {
                   couponError={couponError}
                   isApplying={isApplying}
                 />
-
-                <PaymentMethod payment={payment} setPayment={setPayment} />
 
                 <button
                   type="submit"

@@ -6,15 +6,8 @@ const TABLE_IMAGES = "product_images";
 
 const createProduct = async (req, res) => {
   try {
-    const {
-      name,
-      description,
-      category,
-      price,
-      quantity_available,
-      unit,
-      is_available,
-    } = req.body;
+    const { name, description, category, price, quantity_available, unit } =
+      req.body;
     const { providerId } = req;
 
     const { data: productData, error: productError } = await supabase
@@ -28,7 +21,7 @@ const createProduct = async (req, res) => {
           price,
           quantity_available,
           unit,
-          is_available,
+          is_available: true,
           created_at: new Date(),
           modified_at: new Date(),
         },
