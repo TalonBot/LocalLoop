@@ -4,7 +4,11 @@ const { v4: uuidv4 } = require("uuid");
 
 const joinGroupOrder = async (req, res) => {
   const { consumerId } = req;
-  const { group_order_id, items } = req.body;
+  const { group_order_id, items, delivery_details, notes } = req.body;
+
+  if (!group_order_id) {
+    return res.status(400).json({ message: "Group order ID is required" });
+  }
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ message: "At least one item is required" });
@@ -15,6 +19,12 @@ const joinGroupOrder = async (req, res) => {
     let totalAmount = 0;
 
     for (const item of items) {
+      if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+        return res
+          .status(400)
+          .json({ message: `Invalid quantity for product ${item.product_id}` });
+      }
+
       const { data: product, error } = await supabase
         .from("group_order_products")
         .select("product_id, unit_price, max_quantity")
@@ -50,17 +60,24 @@ const joinGroupOrder = async (req, res) => {
       });
     }
 
+    const metadata = {
+      consumerId,
+      group_order_id,
+      items: JSON.stringify(items),
+      notes: notes || "",
+      delivery_details: delivery_details
+        ? JSON.stringify(delivery_details)
+        : "",
+      total_price: (totalAmount / 100).toFixed(2),
+    };
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
       line_items: lineItems,
       success_url: `${process.env.CLIENT_URL}/group-orders/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.CLIENT_URL}/group-orders/cancel`,
-      metadata: {
-        consumerId,
-        group_order_id,
-        items: JSON.stringify(items),
-      },
+      metadata,
     });
 
     return res.status(200).json({ url: session.url });

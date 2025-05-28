@@ -14,8 +14,9 @@ const getMyStory = async (req, res) => {
       return res.status(500).json({ message: "Fetch error", error });
     }
 
+    // Return empty story object if no story found
     if (!data) {
-      return res.status(404).json({ message: "No story found" });
+      return res.status(200).json({ story: "" });
     }
 
     return res.status(200).json(data);
@@ -24,6 +25,7 @@ const getMyStory = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 module.exports = {
   getMyStory,
 };

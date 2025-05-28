@@ -46,10 +46,6 @@ const productValidationRules = [
     .withMessage("Unit is required")
     .isLength({ max: 20 })
     .withMessage("Unit is too long"),
-
-  body("is_available")
-    .isBoolean()
-    .withMessage("is_available must be a boolean"),
 ];
 
 module.exports = productValidationRules;

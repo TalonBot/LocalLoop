@@ -261,7 +261,6 @@ const Header = () => {
                   </div>
                 </button>
               </div>
-
               {/* Hamburger Toggle BTN */}
               <button
                 id="Toggle"
@@ -304,11 +303,32 @@ const Header = () => {
               </button>
               {/* Hamburger Toggle BTN */}
               {/* Logout button moved to far right */}
+
+              {isAuthenticated && user?.role === "provider" && (
+                <Link
+                  href="/dashboard/provider"
+                  className="px-3 py-1 rounded bg-green-600 hover:bg-green-700 text-sm text-white flex items-center gap-2"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <rect width="24" height="24" fill="none" />
+                    <path
+                      d="M4 13H10C10.55 13 11 12.55 11 12V4C11 3.45 10.55 3 10 3H4C3.45 3 3 3.45 3 4V12C3 12.55 3.45 13 4 13ZM4 21H10C10.55 21 11 20.55 11 20V16C11 15.45 10.55 15 10 15H4C3.45 15 3 15.45 3 16V20C3 20.55 3.45 21 4 21ZM14 21H20C20.55 21 21 20.55 21 20V12C21 11.45 20.55 11 20 11H14C13.45 11 13 11.45 13 12V20C13 20.55 13.45 21 14 21ZM13 4V8C13 8.55 13.45 9 14 9H20C20.55 9 21 8.55 21 8V4C21 3.45 20.55 3 20 3H14C13.45 3 13 3.45 13 4Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                  Dashboard
+                </Link>
+              )}
               {isAuthenticated && (
                 <button
                   onClick={handleLogout}
-                  className="ml-auto px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-sm text-dark"
-                  style={{ marginLeft: "auto" }}
+                  className="ml-4 px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-sm text-dark"
                 >
                   Logout
                 </button>

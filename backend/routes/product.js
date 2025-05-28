@@ -9,21 +9,29 @@ const {
 const productValidationRules = require("../middleware/validators/provider/productsValidator");
 const validate = require("../middleware/validators/provider/validate");
 const productController = require("../controllers/productController");
+const refreshSession = require("../middleware/sessionMiddleware");
 
 router.post(
   "/new",
   verifyProvider,
+  refreshSession,
   upload.array("images", 5),
   productValidationRules,
   validate,
   productController.createProduct
 );
 
-router.get("/", verifyProvider, productController.getMyProducts);
+router.get(
+  "/",
+  verifyProvider,
+  refreshSession,
+  productController.getMyProducts
+);
 
 router.put(
   "/:id",
   verifyProvider,
+  refreshSession,
   upload.array("images", 5),
   validate,
   productController.updateProduct
@@ -32,6 +40,7 @@ router.put(
 router.delete(
   "/:id",
   verifyProvider,
+  refreshSession,
   ensureProductOwnership,
   productController.deleteProduct
 );
@@ -39,6 +48,7 @@ router.delete(
 router.patch(
   "/:id/toggle",
   verifyProvider,
+  refreshSession,
   ensureProductOwnership,
   productController.toggleAvailability
 );
@@ -46,6 +56,7 @@ router.patch(
 router.get(
   "/:id",
   verifyProvider,
+  refreshSession,
   ensureProductOwnership,
   productController.getProductById
 );

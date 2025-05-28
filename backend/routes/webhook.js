@@ -29,6 +29,10 @@ router.post(
         const userId = session.metadata.consumerId;
         const groupOrderId = session.metadata.group_order_id;
         const items = JSON.parse(session.metadata.items);
+        const deliveryDetails = session.metadata.delivery_details
+          ? JSON.parse(session.metadata.delivery_details)
+          : null;
+        const additional_info = session.metadata.notes || null;
 
         try {
           const { error: participantError } = await supabase
@@ -44,6 +48,31 @@ router.post(
           if (participantError) {
             console.error("Error inserting participant:", participantError);
             return res.status(500).end();
+          }
+
+          if (deliveryDetails) {
+            const { address, city, country } = deliveryDetails;
+
+            const { error: deliveryError } = await supabase
+              .from("group_order_delivery_details")
+              .insert([
+                {
+                  user_id: userId,
+                  group_order_id: groupOrderId,
+                  address,
+                  city,
+                  country,
+                  additional_info,
+                  created_at: new Date(),
+                },
+              ]);
+
+            if (deliveryError) {
+              console.error(
+                "Error inserting group order delivery details:",
+                deliveryError
+              );
+            }
           }
 
           const groupOrderItems = [];
@@ -138,8 +167,12 @@ router.post(
         const consumerId = session.metadata.consumerId;
         const pickup_or_delivery = session.metadata.pickup_or_delivery;
         const items = JSON.parse(session.metadata.items);
+        const notes = session.metadata.notes || null;
+        const deliveryDetails = session.metadata.delivery_details
+          ? JSON.parse(session.metadata.delivery_details)
+          : null;
+        const coupon_code = session.metadata.coupon_code || "";
 
-        // Parse total_price from Stripe metadata (includes discount)
         const total_price = parseFloat(session.metadata.total_price) || 0;
 
         const orderItems = [];
@@ -166,11 +199,10 @@ router.post(
           orderItems.push({
             product_id: product.id,
             quantity: item.quantity,
-            unit_price: product.price, // unit price before discount
+            unit_price: product.price,
           });
         }
 
-        // Insert order with discounted total price
         const { data: orderData, error: orderError } = await supabase
           .from("orders")
           .insert([
@@ -192,7 +224,6 @@ router.post(
 
         const order = orderData[0];
 
-        // Insert order items and update stock
         for (const item of orderItems) {
           const { error: itemInsertError } = await supabase
             .from("order_items")
@@ -212,7 +243,6 @@ router.post(
             );
           }
 
-          // Update product stock
           const { data: productData, error: fetchError } = await supabase
             .from("products")
             .select("quantity_available")
@@ -249,15 +279,92 @@ router.post(
           }
         }
 
+        if (pickup_or_delivery === "delivery" && deliveryDetails) {
+          const { address, city, country } = deliveryDetails;
+
+          const { error: detailError } = await supabase
+            .from("order_details")
+            .insert([
+              {
+                order_id: order.id,
+                address,
+                city,
+                country,
+                additional_info: notes,
+                created_at: new Date(),
+              },
+            ]);
+
+          if (detailError) {
+            console.error("Error inserting delivery details:", detailError);
+          }
+        }
+
+        if (coupon_code) {
+          const { data: coupon, error: couponError } = await supabase
+            .from("coupons")
+            .select("id, times_used")
+            .eq("code", coupon_code)
+            .single();
+
+          if (!coupon || couponError) {
+            console.warn(
+              "Coupon not found or error when updating usage",
+              couponError
+            );
+          } else {
+            const { data: usageRecord } = await supabase
+              .from("coupon_usage")
+              .select("*")
+              .eq("coupon_id", coupon.id)
+              .eq("user_id", consumerId)
+              .single();
+
+            if (!usageRecord) {
+              const { error: usageInsertError } = await supabase
+                .from("coupon_usage")
+                .insert([
+                  {
+                    coupon_id: coupon.id,
+                    user_id: consumerId,
+                    used_at: new Date(),
+                  },
+                ]);
+              if (usageInsertError) {
+                console.error(
+                  "Failed to record coupon usage:",
+                  usageInsertError
+                );
+              } else {
+                const { error: updateError } = await supabase
+                  .from("coupons")
+                  .update({ times_used: coupon.times_used + 1 })
+                  .eq("id", coupon.id);
+
+                if (updateError) {
+                  console.error(
+                    "Failed to increment coupon times_used:",
+                    updateError
+                  );
+                }
+              }
+            } else {
+              console.log(
+                `User ${consumerId} already used coupon ${coupon_code}`
+              );
+            }
+          }
+        }
+
         console.log("✅ Order created from Stripe checkout:", order.id);
-        res.status(200).send("Order created");
+        return res.status(200).send("Order created");
       } catch (err) {
-        console.error("❌ Error handling regular order:", err);
-        res.status(500).end();
+        console.error("Regular order error:", err);
+        return res.status(500).end();
       }
-    } else {
-      res.status(200).end(); // Acknowledge all other event types
     }
+
+    res.status(200).end();
   }
 );
 
