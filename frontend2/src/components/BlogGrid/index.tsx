@@ -113,7 +113,9 @@ const ProducersGrid: React.FC = () => {
 
   useEffect(() => {
     const filtered = producers.filter((producer) =>
-      producer.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+      producer.full_name
+        ? producer.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+        : false
     );
     setFilteredProducers(filtered);
   }, [searchTerm, producers]);
