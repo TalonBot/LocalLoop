@@ -19,6 +19,7 @@ const consumerRoutes = require("./routes/consumer");
 const checkoutRoutes = require("./routes/checkoutRoutes");
 const adminRoutes = require("./routes/admin");
 const usersRoutes = require("./routes/users");
+const locationRoutes = require("./routes/location");
 
 app.use("/auth", authRoutes);
 app.use("/product", productRoutes);
@@ -27,6 +28,8 @@ app.use("/consumer", consumerRoutes);
 app.use("/", checkoutRoutes);
 app.use("/admin", adminRoutes);
 app.use("/users", usersRoutes);
+app.use("/location", locationRoutes);
+
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);

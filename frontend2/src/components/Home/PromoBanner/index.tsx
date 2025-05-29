@@ -8,108 +8,81 @@ import {
   Globe,
   Filter,
   Search,
+  Mail,
 } from "lucide-react";
+
+const assignMockPositions = (data) => {
+  const positions = [
+    { top: "20%", left: "25%" },
+    { top: "45%", left: "60%" },
+    { top: "30%", left: "75%" },
+    { top: "65%", left: "40%" },
+    { top: "50%", left: "20%" },
+  ];
+  return data.map((item, index) => ({
+    ...item,
+    position: positions[index % positions.length], // Cycle through mock positions
+    color: "bg-green-500", // Or later use category-based color
+  }));
+};
 
 const LocalProducerMap = () => {
   const [selectedProducer, setSelectedProducer] = useState(null);
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+useEffect(() => {
+  let hasSentLocation = false;
+
+  if (navigator.geolocation && !hasSentLocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        setUserLocation({ lat, lng });
+
+        // Send location to backend
+        fetch("http://localhost:5000/location", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ latitude: lat, longitude: lng }),
+        })
+          .then((res) => res.json())
+          .then((data) => console.log("Location updated:", data))
+          .catch((err) => console.error("Error updating location:", err));
+
+        hasSentLocation = true;
+      },
+      (error) => {
+        console.error("Error getting location:", error.message, "Code:", error.code);
+      }
+    );
+  } else {
+    console.error("Geolocation not supported by this browser.");
+  }
+}, []);
+
+useEffect(() => {
+  if (userLocation) {
+    fetch(`http://localhost:5000/location/nearby-producers?lat=${userLocation.lat}&lng=${userLocation.lng}`)
+      .then(res => res.json())
+        .then(data => {
+          const withPositions = assignMockPositions(data);
+          setProducers(withPositions);
+        })
+      .catch(err => console.error("Error fetching nearby producers:", err));
+  }
+}, [userLocation]);
+
 
   // Mock data for local producers
-  const producers = [
-    {
-      id: 1,
-      name: "Green Valley Farm",
-      category: "farm",
-      type: "Organic Vegetables",
-      rating: 4.8,
-      distance: "2.3 km",
-      phone: "+1 (555) 123-4567",
-      website: "greenvalley.com",
-      hours: "6AM - 6PM",
-      specialties: ["Tomatoes", "Lettuce", "Herbs"],
-      description:
-        "Family-owned organic farm specializing in fresh seasonal vegetables",
-      position: { top: "20%", left: "25%" },
-      color: "bg-green-500",
-    },
-    {
-      id: 2,
-      name: "Artisan Bakery Co.",
-      category: "bakery",
-      type: "Fresh Breads & Pastries",
-      rating: 4.9,
-      distance: "1.8 km",
-      phone: "+1 (555) 234-5678",
-      website: "artisanbakery.com",
-      hours: "5AM - 8PM",
-      specialties: ["Sourdough", "Croissants", "Cakes"],
-      description: "Traditional bakery using locally sourced ingredients",
-      position: { top: "45%", left: "60%" },
-      color: "bg-amber-500",
-    },
-    {
-      id: 3,
-      name: "Mountain Honey",
-      category: "producer",
-      type: "Raw Honey & Bee Products",
-      rating: 4.7,
-      distance: "4.2 km",
-      phone: "+1 (555) 345-6789",
-      website: "mountainhoney.com",
-      hours: "8AM - 5PM",
-      specialties: ["Wildflower Honey", "Beeswax", "Pollen"],
-      description: "Sustainable beekeeping with pure, unprocessed honey",
-      position: { top: "30%", left: "75%" },
-      color: "bg-yellow-500",
-    },
-    {
-      id: 4,
-      name: "Riverside Dairy",
-      category: "dairy",
-      type: "Fresh Dairy Products",
-      rating: 4.6,
-      distance: "3.1 km",
-      phone: "+1 (555) 456-7890",
-      website: "riversidedairy.com",
-      hours: "6AM - 7PM",
-      specialties: ["Fresh Milk", "Cheese", "Yogurt"],
-      description: "Local dairy farm with grass-fed cows and artisan cheeses",
-      position: { top: "65%", left: "40%" },
-      color: "bg-blue-500",
-    },
-    {
-      id: 5,
-      name: "Craft Coffee Roasters",
-      category: "coffee",
-      type: "Small Batch Coffee",
-      rating: 4.8,
-      distance: "1.2 km",
-      phone: "+1 (555) 567-8901",
-      website: "craftcoffee.com",
-      hours: "6AM - 9PM",
-      specialties: ["Single Origin", "Blends", "Cold Brew"],
-      description:
-        "Locally roasted coffee beans sourced from sustainable farms",
-      position: { top: "50%", left: "20%" },
-      color: "bg-orange-600",
-    },
-    {
-      id: 6,
-      name: "Orchard Fresh",
-      category: "farm",
-      type: "Seasonal Fruits",
-      rating: 4.7,
-      distance: "5.8 km",
-      phone: "+1 (555) 678-9012",
-      website: "orchardfresh.com",
-      hours: "7AM - 6PM",
-      specialties: ["Apples", "Berries", "Stone Fruits"],
-      description: "Pick-your-own orchard with the freshest seasonal fruits",
-      position: { top: "25%", left: "45%" },
-      color: "bg-red-500",
-    },
-  ];
+  const [producers, setProducers] = useState<any[]>([]); // Adjust type if needed
+
 
   const categories = [
     { id: "all", label: "All Producers", color: "bg-gray-600" },
@@ -120,14 +93,45 @@ const LocalProducerMap = () => {
     { id: "coffee", label: "Coffee", color: "bg-orange-700" },
   ];
 
-  const filteredProducers = producers.filter((producer) => {
-    const matchesCategory =
-      activeCategory === "all" || producer.category === activeCategory;
-    const matchesSearch =
-      producer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      producer.type.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const filteredProducers = producers.filter((producer) =>
+  producer.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
+);
+
+// const filteredProducers = producers.filter((producer) => {
+//   const matchesCategory =
+//     activeCategory === "all" || producer.category === activeCategory; // category might be undefined, we'll fix this later
+//   const matchesSearch =
+//     producer.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
+//   return matchesCategory && matchesSearch;
+// });
+
+const renderStars = (rating) => {
+  const totalStars = 5;
+  const fullStars = Math.floor(rating);
+  const hasPartialStar = rating % 1 !== 0;
+  const partialStarPercentage = (rating % 1) * 100;
+
+  return (
+    <div className="flex items-center gap-0.5">
+      {[...Array(fullStars)].map((_, index) => (
+        <Star key={`full-${index}`} className="w-4 h-4 text-yellow-400 fill-current" />
+      ))}
+      {hasPartialStar && (
+        <div className="relative w-4 h-4">
+          <Star className="w-4 h-4 text-gray-300" />
+          <Star
+            className="w-4 h-4 text-yellow-400 fill-current absolute top-0 left-0"
+            style={{ clipPath: `inset(0 ${100 - partialStarPercentage}% 0 0)` }}
+          />
+        </div>
+      )}
+      {[...Array(totalStars - fullStars - (hasPartialStar ? 1 : 0))].map((_, index) => (
+        <Star key={`empty-${index}`} className="w-4 h-4 text-gray-300" />
+      ))}
+    </div>
+  );
+};
+
 
   return (
     <section className="overflow-hidden py-20 bg-gradient-to-br from-blue-50 to-green-50">
@@ -245,7 +249,7 @@ const LocalProducerMap = () => {
                         {producer.name}
                       </div>
                       <div className="text-xs text-gray-600">
-                        {producer.distance} away
+                        {producer.distance_km}km away
                       </div>
                     </div>
                   )}
@@ -280,17 +284,18 @@ const LocalProducerMap = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="font-bold text-xl text-gray-900">
-                      {selectedProducer.name}
+                      {selectedProducer.full_name}
                     </h3>
                     <p className="text-gray-600">{selectedProducer.type}</p>
                   </div>
+                  
                   <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                    <span className="text-sm font-medium">
-                      {selectedProducer.rating}
+                    {renderStars(selectedProducer.rating)}
+                    <span className="text-sm font-medium ml-1">
+                      {selectedProducer.rating || "No ratings yet"}
                     </span>
                   </div>
-                </div>
+                  </div>
 
                 <p className="text-gray-700 mb-4">
                   {selectedProducer.description}
@@ -300,27 +305,27 @@ const LocalProducerMap = () => {
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-gray-400" />
                     <span className="text-sm text-gray-600">
-                      {selectedProducer.distance} away
+                      {selectedProducer.distance_km}km away
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  {/* <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-gray-400" />
                     <span className="text-sm text-gray-600">
                       {selectedProducer.hours}
                     </span>
-                  </div>
+                  </div> */}
                   <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-gray-400" />
+                    <Mail className="w-4 h-4 text-gray-400" />
                     <span className="text-sm text-gray-600">
-                      {selectedProducer.phone}
+                      {selectedProducer.email || "No email available"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  {/* <div className="flex items-center gap-2">
                     <Globe className="w-4 h-4 text-gray-400" />
                     <span className="text-sm text-blue-600">
                       {selectedProducer.website}
                     </span>
-                  </div>
+                  </div> */}
                 </div>
 
                 <div className="mb-6">
@@ -328,7 +333,7 @@ const LocalProducerMap = () => {
                     Specialties
                   </h4>
                   <div className="flex flex-wrap gap-2">
-                    {selectedProducer.specialties.map((specialty, index) => (
+                    {selectedProducer.specialties?.map((specialty, index) => (
                       <span
                         key={index}
                         className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
@@ -340,9 +345,14 @@ const LocalProducerMap = () => {
                 </div>
 
                 <div className="flex gap-3">
-                  <button className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors">
-                    Get Directions
-                  </button>
+                  <a
+                      href={`https://www.google.com/maps/dir/?api=1&origin=${userLocation?.lat},${userLocation?.lng}&destination=${selectedProducer.latitude},${selectedProducer.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                    >
+                      Get Directions
+                  </a>
                 </div>
               </div>
             ) : (
