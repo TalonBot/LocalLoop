@@ -30,6 +30,7 @@ app.use("/admin", adminRoutes);
 app.use("/users", usersRoutes);
 app.use("/location", locationRoutes);
 
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
