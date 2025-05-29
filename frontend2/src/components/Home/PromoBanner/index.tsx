@@ -14,6 +14,43 @@ const LocalProducerMap = () => {
   const [selectedProducer, setSelectedProducer] = useState(null);
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+useEffect(() => {
+  let hasSentLocation = false;
+
+  if (navigator.geolocation && !hasSentLocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        setUserLocation({ lat, lng });
+
+        // Send location to backend
+        fetch("http://localhost:5000/location", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ latitude: lat, longitude: lng }),
+        })
+          .then((res) => res.json())
+          .then((data) => console.log("Location updated:", data))
+          .catch((err) => console.error("Error updating location:", err));
+
+        hasSentLocation = true;
+      },
+      (error) => {
+        console.error("Error getting location:", error.message, "Code:", error.code);
+      }
+    );
+  } else {
+    console.error("Geolocation not supported by this browser.");
+  }
+}, []);
+
 
   // Mock data for local producers
   const producers = [
