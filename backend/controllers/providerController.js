@@ -408,6 +408,67 @@ const getProviderOrders = async (req, res) => {
   }
 };
 
+const getGroupOrders = async (req, res) => {
+  const providerId = req.providerId;
+
+  const { data: groupOrders, error: groupOrdersError } = await supabase
+    .from("group_orders")
+    .select("id, description, status, created_at")
+    .eq("created_by", providerId)
+    .order("created_at", { ascending: false });
+
+  if (groupOrdersError) {
+    return res.status(500).json({
+      message: "Failed to fetch group orders",
+      error: groupOrdersError,
+    });
+  }
+
+  const formattedOrders = [];
+
+  for (const order of groupOrders) {
+    const { count: participantCount, error: participantError } = await supabase
+      .from("group_orders_participants")
+      .select("id", { count: "exact", head: true })
+      .eq("group_order_id", order.id);
+
+    if (participantError) {
+      return res.status(500).json({
+        message: `Failed to count participants for order ${order.id}`,
+        error: participantError,
+      });
+    }
+
+    const { data: products, error: productError } = await supabase
+      .from("group_order_products")
+      .select("max_quantity")
+      .eq("group_order_id", order.id);
+
+    if (productError) {
+      return res.status(500).json({
+        message: `Failed to fetch product data for order ${order.id}`,
+        error: productError,
+      });
+    }
+
+    const totalMaxQuantity = products.reduce(
+      (sum, p) => sum + (p.max_quantity || 0),
+      0
+    );
+
+    formattedOrders.push({
+      id: order.id,
+      title: order.description || "Untitled Group Order",
+      status: order.status,
+      createdAt: order.created_at,
+      currentOrders: participantCount,
+      maxQuantity: totalMaxQuantity,
+    });
+  }
+
+  return res.status(200).json({ groupOrders: formattedOrders });
+};
+
 module.exports = {
   updateProfile,
   deleteStory,
@@ -415,4 +476,5 @@ module.exports = {
   getProviderRevenue,
   getProviderInfo,
   getProviderOrders,
+  getGroupOrders,
 };

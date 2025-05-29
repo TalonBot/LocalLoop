@@ -23,7 +23,35 @@ router.post(
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
+      const sessionId = session.id;
 
+      const { data: existingSession, error: sessionFetchError } = await supabase
+        .from("processed_stripe_sessions")
+        .select("id")
+        .eq("id", sessionId)
+        .single();
+
+      if (sessionFetchError && sessionFetchError.code !== "PGRST116") {
+        console.error("Error checking processed sessions:", sessionFetchError);
+        return res.status(500).end();
+      }
+
+      if (existingSession) {
+        console.log(`Skipping already processed session ${sessionId}`);
+        return res.status(200).send("Already processed");
+      }
+
+      const { error: insertSessionError } = await supabase
+        .from("processed_stripe_sessions")
+        .insert([{ id: sessionId }]);
+
+      if (insertSessionError) {
+        console.error(
+          "Error marking session as processed:",
+          insertSessionError
+        );
+        return res.status(500).end();
+      }
       // ===== Group Order (no coupons applied here) =====
       if (session.metadata.group_order_id) {
         const userId = session.metadata.consumerId;
@@ -35,20 +63,27 @@ router.post(
         const additional_info = session.metadata.notes || null;
 
         try {
-          const { error: participantError } = await supabase
-            .from("group_orders_participants")
-            .insert([
-              {
-                user_id: userId,
-                group_order_id: groupOrderId,
-                joined_at: new Date(),
-                paid: true,
-              },
-            ]);
-          if (participantError) {
+          // Insert participant and get the inserted row to get its ID
+          const { data: participantData, error: participantError } =
+            await supabase
+              .from("group_orders_participants")
+              .insert([
+                {
+                  user_id: userId,
+                  group_order_id: groupOrderId,
+                  joined_at: new Date(),
+                  paid: true,
+                },
+              ])
+              .select()
+              .single();
+
+          if (participantError || !participantData) {
             console.error("Error inserting participant:", participantError);
             return res.status(500).end();
           }
+
+          const participantId = participantData.id;
 
           if (deliveryDetails) {
             const { address, city, country } = deliveryDetails;
@@ -57,8 +92,7 @@ router.post(
               .from("group_order_delivery_details")
               .insert([
                 {
-                  user_id: userId,
-                  group_order_id: groupOrderId,
+                  order_id: participantId,
                   address,
                   city,
                   country,

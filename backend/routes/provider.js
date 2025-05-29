@@ -52,4 +52,11 @@ router.post(
   providerController.createGroupOrder
 );
 
+router.get(
+  "/group-orders",
+  verifyProvider,
+  refreshSession,
+  providerController.getGroupOrders
+);
+
 module.exports = router;
