@@ -15,12 +15,21 @@ import {
   MapPin,
   Calendar,
   DollarSign,
-  Settings,
   AlertCircle,
   CheckCircle,
   ShoppingBag,
   X,
 } from "lucide-react";
+
+interface ProviderProfile {
+  business_name?: string;
+  contact_person?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  profile_image?: string;
+  created_at?: string;
+}
 
 interface ProviderProfile {
   id?: string;
@@ -109,8 +118,32 @@ const ProviderDashboard = () => {
   const [revenueData, setRevenueData] = useState<RevenueData | null>(null);
   const [timeframe, setTimeframe] = useState("month");
   const [isLoading, setIsLoading] = useState(true);
+  const [availableProducts, setAvailableProducts] = useState([]);
 
   const [orders, setOrders] = useState<Order[]>([]);
+
+  useEffect(() => {
+    fetchGroupOrders();
+    fetchProducts();
+  }, []);
+
+  const fetchGroupOrders = async () => {
+    try {
+      const response = await apiCall("/provider/group-orders");
+      setGroupOrders(response.groupOrders);
+    } catch (err) {
+      showError("Failed to fetch group orders");
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const products = await apiCall("/product");
+      setAvailableProducts(products);
+    } catch (err) {
+      showError("Failed to fetch products");
+    }
+  };
 
   const loadOrders = async () => {
     try {
@@ -233,7 +266,6 @@ const ProviderDashboard = () => {
     { id: "orders", label: "Orders", icon: ShoppingBag }, // Add this line
     { id: "group-orders", label: "Group Orders", icon: Users },
     { id: "profile", label: "My Profile", icon: User },
-    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   const showSuccess = (message) => {
@@ -900,12 +932,7 @@ const ProviderDashboard = () => {
                     >
                       <Edit3 className="w-4 h-4" />
                     </button>
-                    <button
-                      className="text-green-600 hover:text-green-900 p-1"
-                      title="View"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
+
                     <button
                       onClick={() => deleteProduct(product.id)}
                       className="text-red-600 hover:text-red-900 p-1"
@@ -925,13 +952,26 @@ const ProviderDashboard = () => {
 
   const GroupOrders = () => {
     const [isCreating, setIsCreating] = useState(false);
+
     const [groupOrderForm, setGroupOrderForm] = useState({
-      title: "",
       description: "",
-      minOrder: "",
-      deadline: "",
-      productIds: [],
+      products: [],
     });
+
+    const handleProductToggle = (productId, max_quantity) => {
+      setGroupOrderForm((prevForm) => {
+        const others = prevForm.products.filter(
+          (p) => p.product_id !== productId
+        );
+        if (max_quantity && max_quantity > 0) {
+          return {
+            ...prevForm,
+            products: [...others, { product_id: productId, max_quantity }],
+          };
+        }
+        return { ...prevForm, products: others };
+      });
+    };
 
     const handleCreateGroupOrder = async () => {
       try {
@@ -939,15 +979,10 @@ const ProviderDashboard = () => {
           method: "POST",
           body: JSON.stringify(groupOrderForm),
         });
-        showSuccess("Group order created successfully!");
+        showSuccess("Group order created!");
+        setGroupOrderForm({ description: "", products: [] });
         setIsCreating(false);
-        setGroupOrderForm({
-          title: "",
-          description: "",
-          minOrder: "",
-          deadline: "",
-          productIds: [],
-        });
+        fetchGroupOrders(); // refresh list
       } catch (error) {
         showError("Failed to create group order");
       }
@@ -958,11 +993,11 @@ const ProviderDashboard = () => {
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-900">Group Orders</h2>
           <button
-            onClick={() => setIsCreating(true)}
             className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center"
+            onClick={() => setIsCreating(!isCreating)}
           >
             <Plus className="w-4 h-4 mr-2" />
-            Create Group Order
+            {isCreating ? "Cancel" : "Create Group Order"}
           </button>
         </div>
 
@@ -972,22 +1007,6 @@ const ProviderDashboard = () => {
               Create New Group Order
             </h3>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  value={groupOrderForm.title}
-                  onChange={(e) =>
-                    setGroupOrderForm({
-                      ...groupOrderForm,
-                      title: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Description
@@ -1004,47 +1023,60 @@ const ProviderDashboard = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Minimum Orders
-                  </label>
-                  <input
-                    type="number"
-                    value={groupOrderForm.minOrder}
-                    onChange={(e) =>
-                      setGroupOrderForm({
-                        ...groupOrderForm,
-                        minOrder: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Deadline
-                  </label>
-                  <input
-                    type="date"
-                    value={groupOrderForm.deadline}
-                    onChange={(e) =>
-                      setGroupOrderForm({
-                        ...groupOrderForm,
-                        deadline: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Products & Max Quantity
+                </label>
+                <div className="space-y-2">
+                  {availableProducts.map((product) => {
+                    const selected = groupOrderForm.products.find(
+                      (p) => p.product_id === product.id
+                    );
+                    return (
+                      <div
+                        key={product.id}
+                        className="flex items-center justify-between border px-4 py-2 rounded-md"
+                      >
+                        <div>
+                          <p className="font-medium">{product.name}</p>
+                          <p className="text-sm text-gray-500">
+                            Available: {product.quantity_available}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={!!selected}
+                            onChange={(e) =>
+                              handleProductToggle(
+                                product.id,
+                                e.target.checked ? 1 : null
+                              )
+                            }
+                          />
+                          <input
+                            type="number"
+                            min={1}
+                            max={product.quantity_available}
+                            disabled={!selected}
+                            value={selected?.max_quantity || ""}
+                            onChange={(e) =>
+                              handleProductToggle(
+                                product.id,
+                                parseInt(e.target.value, 10) || null
+                              )
+                            }
+                            className="w-24 px-2 py-1 border border-gray-300 rounded-md"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setIsCreating(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
+
+              <div className="flex justify-end">
                 <button
                   onClick={handleCreateGroupOrder}
                   className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
@@ -1056,19 +1088,74 @@ const ProviderDashboard = () => {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-sm border p-6 text-center">
-          <Users className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No group orders yet
-          </h3>
-          <p className="text-gray-600">
-            Create group orders to allow bulk purchasing from consumers.
-          </p>
+        <div className="grid gap-6">
+          {groupOrders.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-sm border p-6 text-center">
+              <Users className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No group orders yet
+              </h3>
+              <p className="text-gray-600">
+                Create group orders to allow bulk purchasing from consumers.
+              </p>
+            </div>
+          ) : (
+            groupOrders.map((order) => {
+              const totalQuantity = order.maxQuantity + order.currentOrders;
+              const progressPercent = totalQuantity
+                ? Math.round((order.currentOrders / totalQuantity) * 100)
+                : 0;
+
+              return (
+                <div
+                  key={order.id}
+                  className="bg-white rounded-lg shadow-sm border p-6"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {order.title || "Group Order"}
+                      </h3>
+                      <div className="flex items-center mt-2 space-x-4 text-sm text-gray-600">
+                        <div className="flex items-center">
+                          <Users className="w-4 h-4 mr-1" />
+                          Total Quantity: {totalQuantity}
+                        </div>
+                      </div>
+                    </div>
+                    <span
+                      className={`px-3 py-1 text-sm rounded-full ${
+                        order.maxQuantity === 0
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-green-100 text-green-800"
+                      }`}
+                    >
+                      {order.maxQuantity === 0 ? "Completed" : "Open"}
+                    </span>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm text-gray-600 mb-1">
+                      <span>
+                        Progress: {order.currentOrders}/{totalQuantity}
+                      </span>
+                      <span>{progressPercent}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-green-600 h-2 rounded-full"
+                        style={{ width: `${progressPercent}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     );
   };
-
   const Profile = () => {
     const [profileForm, setProfileForm] = useState(profile);
     const [storyForm, setStoryForm] = useState(story);
