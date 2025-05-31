@@ -107,7 +107,7 @@ const FeaturedProducers = () => {
             This Month
           </div>
           <h2 className="text-3xl font-semibold text-gray-800 mb-2">
-            Meet Our Producers
+           Featured Local Producers
           </h2>
           <p className="text-gray-600 max-w-xl mx-auto mb-4">
             Discover the passionate individuals behind our premium products.
