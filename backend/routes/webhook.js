@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const supabase = require("../config/supabase");
+const { sendEmail } = require("../helpers/mailer");
 
 router.post(
   "/",
@@ -186,6 +187,26 @@ router.post(
                 updateError
               );
             }
+          }
+
+          // Fetch user email and name to send email
+          const { data: userData, error: userFetchError } = await supabase
+            .from("users")
+            .select("email")
+            .eq("id", userId)
+            .single();
+
+          if (!userFetchError && userData) {
+            await sendEmail(
+              userData.email,
+              process.env.SENDGRID_GROUP_ORDER_TEMPLATE_ID,
+              {
+                group_order_id: groupOrderId,
+                items,
+                deliveryDetails,
+                additional_info,
+              }
+            );
           }
 
           console.log(`Group order processed for user ${userId}`);
@@ -388,6 +409,35 @@ router.post(
               );
             }
           }
+        }
+
+        const { data: userData, error: userFetchError } = await supabase
+          .from("users")
+          .select("email")
+          .eq("id", consumerId)
+          .single();
+
+        if (!userFetchError && userData) {
+          const order_date = new Date().toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          }); // Format: DD/MM/YYYY
+
+          await sendEmail(
+            userData.email,
+            process.env.SENDGRID_ORDER_TEMPLATE_ID,
+            {
+              order_id: order.id,
+              items,
+              pickup_or_delivery,
+              deliveryDetails,
+              notes,
+              total_price,
+              coupon_code,
+              order_date,
+            }
+          );
         }
 
         console.log("✅ Order created from Stripe checkout:", order.id);

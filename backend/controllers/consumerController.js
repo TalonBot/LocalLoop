@@ -75,8 +75,8 @@ const joinGroupOrder = async (req, res) => {
       payment_method_types: ["card"],
       mode: "payment",
       line_items: lineItems,
-      success_url: `${process.env.CLIENT_URL}/group-orders/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.CLIENT_URL}/group-orders/cancel`,
+      success_url: `${process.env.FRONTEND_URL}/checkout/success`,
+      cancel_url: `${process.env.FRONTEND_URL}/checkout/cancel`,
       metadata,
     });
 

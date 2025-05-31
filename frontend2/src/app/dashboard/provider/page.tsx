@@ -22,26 +22,13 @@ import {
 } from "lucide-react";
 
 interface ProviderProfile {
-  business_name?: string;
-  contact_person?: string;
-  email?: string;
-  phone?: string;
-  location?: string;
-  profile_image?: string;
-  created_at?: string;
-}
-
-interface ProviderProfile {
   id?: string;
-  business_name?: string;
-  contact_person?: string;
+
   email?: string;
-  phone?: string;
+
   location?: string;
-  profile_image?: string;
+  profile_image_url?: string;
   rating?: number;
-  created_at?: string;
-  updated_at?: string;
 }
 
 interface Product {
@@ -225,8 +212,6 @@ const ProviderDashboard = () => {
   // Load initial data
   useEffect(() => {
     loadProducts();
-    loadProfile();
-    loadStory();
   }, []);
 
   const loadProducts = async () => {
@@ -239,24 +224,6 @@ const ProviderDashboard = () => {
       console.error("Failed to load products:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadProfile = async () => {
-    try {
-      const data = await apiCall("/provider/me");
-      setProfile(data.provider || {});
-    } catch (error) {
-      console.error("Failed to load profile:", error);
-    }
-  };
-
-  const loadStory = async () => {
-    try {
-      const data = await apiCall("/provider/story");
-      setStory(data.story || "");
-    } catch (error) {
-      console.error("Failed to load story:", error);
     }
   };
 
@@ -1157,30 +1124,58 @@ const ProviderDashboard = () => {
     );
   };
   const Profile = () => {
-    const [profileForm, setProfileForm] = useState(profile);
-    const [storyForm, setStoryForm] = useState(story);
-    const [profileImage, setProfileImage] = useState(null);
+    const [profileForm, setProfileForm] = useState({
+      full_name: "",
+      email: "",
+    });
+    const [profileImage, setProfileImage] = useState<File | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
+    const [isUpdatingStory, setIsUpdatingStory] = useState(false); // Separate loading state for story
+    const [storyForm, setStoryForm] = useState<string>("");
+    const [profile, setProfile] = useState<ProviderProfile | null>(null);
+
+    // Load all initial data (profile + story) in one useEffect
+    useEffect(() => {
+      const loadInitialData = async () => {
+        try {
+          // Load profile data
+          const profileRes = await fetch(`${API_BASE}/provider/me`, {
+            credentials: "include",
+          });
+          const profileData = await profileRes.json();
+          setProfile(profileData);
+          setProfileForm({
+            full_name: profileData.provider.full_name || "",
+            email: profileData.provider.email || "",
+          });
+
+          // Load story data
+          const storyRes = await apiCall("/provider/story");
+          setStoryForm(storyRes.story || "");
+        } catch (err) {
+          showError("Failed to load profile data.");
+        }
+      };
+
+      loadInitialData();
+    }, []);
 
     const handleProfileUpdate = async () => {
       setIsUpdating(true);
       try {
         const formData = new FormData();
-        Object.keys(profileForm).forEach((key) => {
-          if (profileForm[key]) formData.append(key, profileForm[key]);
-        });
+        formData.append("full_name", profileForm.full_name);
         if (profileImage) {
           formData.append("profile_image", profileImage);
         }
 
-        await fetch(`${API_BASE}/providers/me`, {
+        await fetch(`${API_BASE}/provider/me`, {
           method: "PUT",
           credentials: "include",
           body: formData,
         });
 
         showSuccess("Profile updated successfully!");
-        await loadProfile();
       } catch (error) {
         showError("Failed to update profile");
       } finally {
@@ -1189,15 +1184,17 @@ const ProviderDashboard = () => {
     };
 
     const handleStoryUpdate = async () => {
+      setIsUpdatingStory(true);
       try {
         await apiCall("/provider/story", {
           method: "PUT",
           body: JSON.stringify({ story: storyForm }),
         });
         showSuccess("Story updated successfully!");
-        setStory(storyForm);
       } catch (error) {
         showError("Failed to update story");
+      } finally {
+        setIsUpdatingStory(false);
       }
     };
 
@@ -1206,81 +1203,34 @@ const ProviderDashboard = () => {
         <h2 className="text-2xl font-bold text-gray-900">My Profile</h2>
 
         <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h3 className="text-lg font-semibold mb-4">Profile Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Farm/Business Name
+                Full Name
               </label>
               <input
                 type="text"
-                value={profileForm.business_name || ""}
+                id="full_name"
+                name="full_name"
+                value={profileForm.full_name}
                 onChange={(e) =>
-                  setProfileForm({
-                    ...profileForm,
-                    business_name: e.target.value,
-                  })
+                  setProfileForm({ ...profileForm, full_name: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Contact Person
-              </label>
-              <input
-                type="text"
-                value={profileForm.contact_person || ""}
-                onChange={(e) =>
-                  setProfileForm({
-                    ...profileForm,
-                    contact_person: e.target.value,
-                  })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+                Email (read-only)
               </label>
               <input
                 type="email"
-                value={profileForm.email || ""}
-                onChange={(e) =>
-                  setProfileForm({ ...profileForm, email: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone
-              </label>
-              <input
-                type="tel"
-                value={profileForm.phone || ""}
-                onChange={(e) =>
-                  setProfileForm({ ...profileForm, phone: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Location
-            </label>
-            <div className="flex items-center">
-              <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-              <input
-                type="text"
-                value={profileForm.location || ""}
-                onChange={(e) =>
-                  setProfileForm({ ...profileForm, location: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                id="email"
+                name="email"
+                value={profileForm.email}
+                disabled
+                className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md"
               />
             </div>
           </div>
@@ -1290,45 +1240,69 @@ const ProviderDashboard = () => {
               Profile Photo
             </label>
             <div className="flex items-center space-x-4">
-              <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center">
-                {profile.profile_image ? (
+              <div className="w-20 h-20 bg-gray-200 rounded-full overflow-hidden">
+                {profile?.profile_image_url ? (
                   <img
-                    src={profile.profile_image}
+                    src={profile.profile_image_url}
                     alt="Profile"
-                    className="w-20 h-20 rounded-full object-cover"
+                    className="w-20 h-20 object-cover"
                   />
                 ) : (
-                  <User className="w-8 h-8 text-gray-400" />
+                  <User className="w-8 h-8 text-gray-400 m-6" />
                 )}
               </div>
               <div className="flex-1">
-                <div className="flex items-center">
-                  <input
-                    type="file"
-                    id="profile-image"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={(e) =>
-                      setProfileImage(e.target.files?.[0] || null)
-                    }
-                  />
-                  <label
-                    htmlFor="profile-image"
-                    className="cursor-pointer bg-white px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Change Photo
-                  </label>
-                  {profileImage && (
-                    <span className="ml-3 text-sm text-gray-500">
-                      {profileImage.name}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 text-sm text-gray-500">
-                  JPG, PNG or GIF. Max size 2MB.
-                </p>
+                <input
+                  type="file"
+                  id="profile-image"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={(e) => setProfileImage(e.target.files?.[0] || null)}
+                />
+                <label
+                  htmlFor="profile-image"
+                  className="cursor-pointer bg-white px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Change Photo
+                </label>
+                {profileImage && (
+                  <span className="ml-3 text-sm text-gray-500">
+                    {profileImage.name}
+                  </span>
+                )}
               </div>
+            </div>
+          </div>
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Your Story
+            </label>
+            <textarea
+              value={storyForm}
+              onChange={(e) => setStoryForm(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
+              rows={4}
+              placeholder="Tell us about yourself..."
+            />
+            <div className="mt-2 flex justify-end">
+              <button
+                onClick={handleStoryUpdate}
+                disabled={isUpdatingStory}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center"
+              >
+                {isUpdatingStory ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    Saving Story...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Story
+                  </>
+                )}
+              </button>
             </div>
           </div>
 
@@ -1340,60 +1314,21 @@ const ProviderDashboard = () => {
             >
               {isUpdating ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Updating...
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Updating Profile...
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Save Changes
+                  Save Profile Changes
                 </>
               )}
             </button>
           </div>
         </div>
-
-        {/* Our Story Section */}
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h3 className="text-lg font-semibold mb-4">Our Story</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tell your customers about your business
-              </label>
-              <textarea
-                value={storyForm}
-                onChange={(e) => setStoryForm(e.target.value)}
-                rows={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="Share your journey, values, and what makes your products special..."
-              />
-            </div>
-            <div className="flex justify-end">
-              <button
-                onClick={handleStoryUpdate}
-                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Story
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Join Date Information */}
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <div className="flex items-center text-gray-600">
-            <Calendar className="w-5 h-5 mr-2" />
-            <span>
-              Joined {new Date(profile.created_at || "").toLocaleDateString()}
-            </span>
-          </div>
-        </div>
       </div>
     );
   };
-
   // Render main dashboard layout with components
   return (
     <div className="min-h-screen bg-gray-100">

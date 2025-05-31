@@ -22,7 +22,7 @@ interface Producer {
     full_name: string;
     profile_image_url?: string;
   };
-  story?: string;
+  story?: string | null;
   certifications?: string[];
   products: {
     items: Product[];
@@ -41,7 +41,12 @@ const ProducerDetails: React.FC = () => {
     fetch(`http://localhost:5000/users/producers/${id}`)
       .then((res) => res.json())
       .then((data) => {
-        setProducer(data);
+        setProducer({
+          producer: data.producer,
+          story: data.story?.story ?? null,
+          certifications: data.certifications ?? [],
+          products: data.products ?? { items: [] },
+        });
         setLoading(false);
       });
   }, [id]);
@@ -107,8 +112,8 @@ const ProducerDetails: React.FC = () => {
   return (
     <>
       <Breadcrumb
-        title={producer.producer.full_name}
-        pages={["Producers", producer.producer.full_name]}
+        title={producer?.producer?.full_name || "Loading..."}
+        pages={["Producers", producer?.producer?.full_name || "Loading..."]}
       />
 
       {/* Hero Section */}

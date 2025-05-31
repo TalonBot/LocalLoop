@@ -14,6 +14,7 @@ const Signup = () => {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -22,6 +23,7 @@ const Signup = () => {
   const handleLocalSignup = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccess(false);
 
     if (formData.password !== formData.re_password) {
       setError("Passwords do not match");
@@ -44,7 +46,7 @@ const Signup = () => {
       if (!res.ok) {
         setError(data.message || "Signup failed");
       } else {
-        router.push("/signin");
+        setSuccess(true);
       }
     } catch {
       setError("Network error");
@@ -81,7 +83,6 @@ const Signup = () => {
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  {/* Your existing Google SVG paths here */}
                   <path
                     d="M19.777 10.226c0-.703-.063-1.238-.198-1.78H10v3.348h5.444a4.66 4.66 0 0 1-2.02 3.058v2.54h3.263c1.907-1.757 3-4.347 3-7.166Z"
                     fill="#4285F4"
@@ -108,87 +109,94 @@ const Signup = () => {
               <span className="inline-block px-3 bg-white">Or</span>
             </span>
 
-            <form onSubmit={handleLocalSignup}>
-              <div className="mb-5">
-                <label htmlFor="full_name" className="block mb-2.5">
-                  Full Name <span className="text-red">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="full_name"
-                  name="full_name"
-                  value={formData.full_name}
-                  onChange={handleChange}
-                  placeholder="Enter your full name"
-                  required
-                  className="rounded-lg border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-3 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
-                />
+            {success ? (
+              <div className="p-6 bg-green-100 border border-green-400 text-green-700 rounded-lg text-center">
+                Registration successful! Please check your email to verify your
+                account.
               </div>
+            ) : (
+              <form onSubmit={handleLocalSignup}>
+                <div className="mb-5">
+                  <label htmlFor="full_name" className="block mb-2.5">
+                    Full Name <span className="text-red">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="full_name"
+                    name="full_name"
+                    value={formData.full_name}
+                    onChange={handleChange}
+                    placeholder="Enter your full name"
+                    required
+                    className="rounded-lg border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-3 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
+                  />
+                </div>
 
-              <div className="mb-5">
-                <label htmlFor="email" className="block mb-2.5">
-                  Email Address <span className="text-red">*</span>
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Enter your email address"
-                  required
-                  className="rounded-lg border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-3 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
-                />
-              </div>
+                <div className="mb-5">
+                  <label htmlFor="email" className="block mb-2.5">
+                    Email Address <span className="text-red">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Enter your email address"
+                    required
+                    className="rounded-lg border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-3 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
+                  />
+                </div>
 
-              <div className="mb-5">
-                <label htmlFor="password" className="block mb-2.5">
-                  Password <span className="text-red">*</span>
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Enter your password"
-                  required
-                  autoComplete="on"
-                  className="rounded-lg border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-3 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
-                />
-              </div>
+                <div className="mb-5">
+                  <label htmlFor="password" className="block mb-2.5">
+                    Password <span className="text-red">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Enter your password"
+                    required
+                    autoComplete="on"
+                    className="rounded-lg border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-3 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
+                  />
+                </div>
 
-              <div className="mb-5.5">
-                <label htmlFor="re_password" className="block mb-2.5">
-                  Re-type Password <span className="text-red">*</span>
-                </label>
-                <input
-                  type="password"
-                  id="re_password"
-                  name="re_password"
-                  value={formData.re_password}
-                  onChange={handleChange}
-                  placeholder="Re-type your password"
-                  required
-                  autoComplete="on"
-                  className="rounded-lg border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-3 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
-                />
-              </div>
+                <div className="mb-5.5">
+                  <label htmlFor="re_password" className="block mb-2.5">
+                    Re-type Password <span className="text-red">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    id="re_password"
+                    name="re_password"
+                    value={formData.re_password}
+                    onChange={handleChange}
+                    placeholder="Re-type your password"
+                    required
+                    autoComplete="on"
+                    className="rounded-lg border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-3 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
+                  />
+                </div>
 
-              {error && (
-                <p className="text-red-500 mb-4 text-center font-semibold">
-                  {error}
-                </p>
-              )}
+                {error && (
+                  <p className="text-red-500 mb-4 text-center font-semibold">
+                    {error}
+                  </p>
+                )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex justify-center font-medium text-white bg-dark py-3 px-6 rounded-lg ease-out duration-200 hover:bg-blue mt-7.5 disabled:opacity-50"
-              >
-                {loading ? "Creating Account..." : "Create Account"}
-              </button>
-            </form>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full flex justify-center font-medium text-white bg-dark py-3 px-6 rounded-lg ease-out duration-200 hover:bg-blue mt-7.5 disabled:opacity-50"
+                >
+                  {loading ? "Creating Account..." : "Create Account"}
+                </button>
+              </form>
+            )}
 
             <p className="text-center mt-6">
               Already have an account?

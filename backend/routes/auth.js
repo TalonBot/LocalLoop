@@ -4,6 +4,7 @@ const {
   logoutUser,
   verifySession,
   registerUser,
+  verifyEmail,
 } = require("../controllers/authController");
 const {
   validateLogin,
@@ -54,5 +55,7 @@ router.get(
     res.redirect("http://localhost:3000/"); // Redirect to your frontend dashboard
   }
 );
+
+router.post("/verify-email", verifyEmail);
 
 module.exports = router;
