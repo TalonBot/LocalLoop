@@ -46,7 +46,7 @@ const ShopWithSidebar = () => {
     products: [],
     total: 0,
     page: 1,
-    limit: 10,
+    limit: 9,
   });
 
   const handleStickyMenu = () => {
@@ -126,7 +126,7 @@ const ShopWithSidebar = () => {
           setLoading(false);
         })
         .catch(() => {
-          setProductData({ products: [], total: 0, page: 1, limit: 10 });
+          setProductData({ products: [], total: 0, page: 1, limit: 9 });
           setLoading(false);
         });
     }, 400); // 400ms debounce

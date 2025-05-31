@@ -102,6 +102,7 @@ const Checkout = () => {
             items: cartItems.map((item) => ({
               product_id: item.id,
               quantity: item.quantity,
+              product_name: item.title,
             })),
             pickup_or_delivery: shippingMethod,
             coupon_code: couponCode || null,

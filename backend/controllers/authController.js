@@ -5,6 +5,8 @@ const redisClient = require("../config/redis");
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const { validationResult } = require("express-validator");
+const crypto = require("crypto");
+const { sendEmail } = require("../helpers/mailer");
 
 // Login a user
 const loginUser = async (req, res) => {
@@ -24,6 +26,13 @@ const loginUser = async (req, res) => {
 
     if (error || !data) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    // After you fetch the user from Supabase
+    if (!data.email_verified) {
+      return res
+        .status(403)
+        .json({ message: "Please verify your email before logging in." });
     }
 
     // Check if user is registered with OAuth
@@ -195,6 +204,9 @@ const registerUser = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const tokenExpires = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
+
     const { error } = await supabase.from("users").insert(
       [
         {
@@ -203,6 +215,8 @@ const registerUser = async (req, res) => {
           full_name,
           role,
           auth_provider: "local",
+          email_verification_token: verificationToken,
+          email_verification_token_expires: tokenExpires,
         },
       ],
       { returning: "minimal" }
@@ -213,7 +227,17 @@ const registerUser = async (req, res) => {
       return res.status(500).json({ message: "Error creating user" });
     }
 
-    res.status(201).json({ message: "User registered successfully" });
+    // Send verification email
+    const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}&email=${email}`;
+
+    await sendEmail(email, process.env.SENDGRID_VERIFICATION_TEMPLATE_ID, {
+      full_name,
+      verification_link: verificationLink,
+    });
+
+    res
+      .status(201)
+      .json({ message: "User registered. Please verify your email." });
   } catch (error) {
     console.error("Registration error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -260,6 +284,9 @@ passport.use(
                 email,
                 role,
                 auth_provider: "oauth",
+                email_verified: true, // ✅ Verified by Google
+                email_verification_token: null,
+                email_verification_token_expires: null,
               },
             ])
             .select()
@@ -310,10 +337,51 @@ passport.deserializeUser(async (sessionId, done) => {
   }
 });
 
+const verifyEmail = async (req, res) => {
+  const { email, token } = req.body;
+
+  try {
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("id, email_verification_token, email_verification_token_expires")
+      .eq("email", email)
+      .single();
+
+    if (error || !user) {
+      return res.status(400).json({ message: "Invalid email or token" });
+    }
+
+    if (
+      user.email_verification_token !== token ||
+      new Date() > new Date(user.email_verification_token_expires)
+    ) {
+      return res.status(400).json({ message: "Token invalid or expired" });
+    }
+
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({
+        email_verified: true,
+        email_verification_token: null,
+        email_verification_token_expires: null,
+      })
+      .eq("id", user.id);
+
+    if (updateError) {
+      return res.status(500).json({ message: "Failed to verify email" });
+    }
+
+    res.json({ message: "Email verified successfully" });
+  } catch (err) {
+    console.error("Verify error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   loginUser,
   logoutUser,
   verifySession,
-
+  verifyEmail,
   registerUser,
 };
