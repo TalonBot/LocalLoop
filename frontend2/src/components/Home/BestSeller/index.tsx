@@ -1,14 +1,15 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { CheckCircle, Eye } from "lucide-react";
+import { CheckCircle, Eye, Heart, Award } from "lucide-react";
 
 const FeaturedProducers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [producers, setProducers] = useState([]);
+  const [favorites, setFavorites] = useState(new Set());
 
   // Fetching producers from API on mount
   useEffect(() => {
-    fetch("http://localhost:5000/users/producers/page?page=1&limit=10") // Replace with your actual endpoint if needed
+    fetch("http://localhost:5000/users/producers/page?page=1&limit=10")
       .then((res) => res.json())
       .then((data) => {
         if (data && Array.isArray(data.producers)) {
@@ -17,7 +18,9 @@ const FeaturedProducers = () => {
             name: p.full_name,
             description: p.description || "No description available.",
             profileUrl: `/producers/${p.id}`,
-            verified: true, // Change this if your API returns a `verified` field
+            verified: true, 
+            image: "👤", 
+            badge: "Certified Producer", 
           }));
           setProducers(formatted);
         }
@@ -27,52 +30,86 @@ const FeaturedProducers = () => {
       });
   }, []);
 
+  const toggleFavorite = (id) => {
+    const newFavorites = new Set(favorites);
+    if (newFavorites.has(id)) {
+      newFavorites.delete(id);
+    } else {
+      newFavorites.add(id);
+    }
+    setFavorites(newFavorites);
+  };
+
   const filteredProducers = producers.filter((producer) =>
     producer.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const ProducerCard = ({ producer }) => (
-    <div className="border rounded-2xl bg-white p-4 flex flex-col items-center shadow-sm hover:shadow-lg transition-all relative">
-      <div className="relative w-20 h-20 rounded-full bg-slate-200 flex items-center justify-center text-purple-700 text-4xl shadow mb-4">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="currentColor"
-          viewBox="0 0 24 24"
-          className="w-10 h-10"
-        >
-          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-        </svg>
-        {producer.verified && (
-          <div className="absolute bottom-0 right-0 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-            <CheckCircle className="w-3 h-3 text-white" />
-          </div>
-        )}
+    <div className="relative bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 group overflow-hidden">
+      {/* Badge */}
+      <div className="absolute top-4 left-4 z-10">
+        <div className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+          <Award className="w-3 h-3" />
+          {producer.badge}
+        </div>
       </div>
 
-      <h3 className="font-semibold text-base text-center text-gray-900 mb-1">
-        {producer.name}
-      </h3>
-
-      <p className="text-sm text-center text-gray-600 mb-4 px-2 leading-relaxed">
-        {producer.description}
-      </p>
-
-      <a
-        href={producer.profileUrl}
-        className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-md font-medium hover:bg-blue-700 transition"
+      {/* Favorite Button */}
+      <button
+        onClick={() => toggleFavorite(producer.id)}
+        className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white shadow-lg hover:bg-red-100 transition-colors duration-200"
       >
-        <Eye className="w-4 h-4" />
-        View Profile
-      </a>
+        <Heart
+          className={`w-4 h-4 ${
+            favorites.has(producer.id) ? "text-red-500 fill-current" : "text-gray-500"
+          }`}
+        />
+      </button>
+
+      {/* Image/Icon Section */}
+      <div className="relative h-48 bg-gradient-to-br from-green-100 to-blue-100 flex items-center justify-center">
+        <div className="text-6xl">{producer.image}</div>
+        <div className="absolute bottom-3 right-3">
+          <div className="bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
+            Verified
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-6">
+        <h3 className="font-semibold text-lg text-gray-900 group-hover:text-blue-600 transition-colors mb-2">
+          {producer.name}
+        </h3>
+        <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+          {producer.description}
+        </p>
+        <a
+          href={producer.profileUrl}
+          className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white text-sm px-4 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200"
+        >
+          <Eye className="w-4 h-4" />
+          View Profile
+        </a>
+      </div>
     </div>
   );
 
   return (
-    <section className="py-10 bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="mb-8 text-center">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">Meet Our Producers</h2>
-          <p className="text-gray-600 max-w-xl mx-auto">
+    <section className="py-20 bg-gray-50">
+      <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0">
+        {/* Section Title */}
+        <div className="mb-10 text-center">
+          <div className="flex items-center justify-center gap-2.5 font-medium text-gray-800 mb-1.5">
+            <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+              <Award className="w-2.5 h-2.5 text-white" />
+            </div>
+            This Month
+          </div>
+          <h2 className="text-3xl font-semibold text-gray-800 mb-2">
+            Meet Our Producers
+          </h2>
+          <p className="text-gray-600 max-w-xl mx-auto mb-4">
             Discover the passionate individuals behind our premium products.
           </p>
           <div className="mt-4">
@@ -86,7 +123,8 @@ const FeaturedProducers = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Producers Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7.5">
           {filteredProducers.length === 0 ? (
             <p className="text-center col-span-full text-gray-600">
               No producers found.
@@ -96,6 +134,13 @@ const FeaturedProducers = () => {
               <ProducerCard key={producer.id} producer={producer} />
             ))
           )}
+        </div>
+
+        {/* View All Button */}
+        <div className="text-center mt-12">
+          <button className="inline-flex font-medium text-sm py-3 px-7 rounded-md border border-gray-300 bg-white text-gray-800 hover:bg-gray-800 hover:text-white hover:border-transparent transition-colors duration-200">
+            View All Producers
+          </button>
         </div>
       </div>
     </section>
