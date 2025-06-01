@@ -209,6 +209,46 @@ router.post(
             );
           }
 
+          // group orders logika za kupone !!
+                  try {
+            const couponCode = `LLOOP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+            const discountPercent = Math.floor(Math.random() * (15 - 5 + 1)) + 5; // Random 5–15%
+
+            const { data: newCoupon, error: couponInsertError } = await supabase
+              .from("coupons")
+              .insert([
+                {
+                  code: couponCode,
+                  discount_percent: discountPercent,
+                  expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+                  usage_limit: 1,
+                },
+              ])
+              .select()
+              .single();
+
+            if (couponInsertError) {
+              console.error("Error creating coupon:", couponInsertError);
+            } else {
+              await sendEmail(
+                userData.email,
+                process.env.SENDGRID_COUPON_TEMPLATE_ID,
+                {
+                  user_name: userData.email,
+                  coupon_code: couponCode,
+                  discount_percent: discountPercent,
+                  expiry_date: new Date(newCoupon.expires_at).toLocaleDateString("en-GB"),
+                },
+                "Here’s a special coupon for your next purchase!"
+              );
+
+              console.log(`Coupon ${couponCode} sent to ${userData.email} (Discount: ${discountPercent}%)`);
+            }
+          } catch (err) {
+            console.error("Error generating or sending coupon:", err);
+          }
+
+
           console.log(`Group order processed for user ${userId}`);
           return res.status(200).send("Group order processed");
         } catch (err) {
@@ -440,44 +480,45 @@ router.post(
             
           );
                 }
-        if (!session.metadata.group_order_id) {
-          try {
-            const couponCode = `LLOOP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+// koda za kupone + mail (ne deluje ker nimam privilegijov :<) , tu je za single userje, ce ne zelimo meti tako lahko vrzemo ven
+                      try {
+              const couponCode = `LLOOP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+              const discountPercent = Math.floor(Math.random() * (15 - 5 + 1)) + 5; // Random between 5–15%
 
-            const { data: newCoupon, error: couponInsertError } = await supabase
-              .from("coupons")
-              .insert([
-                {
-                  code: couponCode,
-                  discount_percent: 10,
-                  expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-                  usage_limit: 1,
-                },
-              ])
-              .select()
-              .single();
+              const { data: newCoupon, error: couponInsertError } = await supabase
+                .from("coupons")
+                .insert([
+                  {
+                    code: couponCode,
+                    discount_percent: discountPercent,
+                    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+                    usage_limit: 1,
+                  },
+                ])
+                .select()
+                .single();
 
-            if (couponInsertError) {
-              console.error("Error creating coupon:", couponInsertError);
-            } else {
-              await sendEmail(
-                userData.email,
-                process.env.SENDGRID_COUPON_TEMPLATE_ID,
-                {
-                  user_name: userData.email,
-                  coupon_code: couponCode,
-                  discount_percent: 10,
-                  expiry_date: new Date(newCoupon.expires_at).toLocaleDateString("en-GB"),
-                },
-                "Here’s a special coupon for your next purchase!"
-              );
+              if (couponInsertError) {
+                console.error("Error creating coupon:", couponInsertError);
+              } else {
+                await sendEmail(
+                  userData.email,
+                  process.env.SENDGRID_COUPON_TEMPLATE_ID,
+                  {
+                    user_name: userData.email,
+                    coupon_code: couponCode,
+                    discount_percent: discountPercent,
+                    expiry_date: new Date(newCoupon.expires_at).toLocaleDateString("en-GB"),
+                  },
+                  "Here’s a special coupon for your next purchase!"
+                );
 
-              console.log(`Coupon ${couponCode} sent to ${userData.email}`);
+                console.log(`Coupon ${couponCode} sent to ${userData.email} (Discount: ${discountPercent}%)`);
+              }
+            } catch (err) {
+              console.error("Error generating or sending coupon:", err);
             }
-          } catch (err) {
-            console.error("Error generating or sending coupon:", err);
-          }
-        }
+        
 
 
         console.log("✅ Order created from Stripe checkout:", order.id);
