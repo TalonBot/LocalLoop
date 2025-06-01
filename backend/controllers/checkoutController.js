@@ -6,6 +6,24 @@ const createCheckoutSession = async (req, res) => {
     req.body;
   const { consumerId } = req;
 
+  // Add a check for group orders
+let isGroupOrder = false;
+const { data: groupOrder, error: groupError } = await supabase
+  .from("group_orders")
+  .select("*")
+  .eq("user_id", consumerId)
+  .eq("status", "active")
+  .single();
+
+if (groupOrder) {
+  isGroupOrder = true;
+}
+
+if (isGroupOrder && coupon_code) {
+  return res.status(400).json({ message: "Coupons are not allowed for group orders." });
+}
+
+
   if (!items || items.length === 0) {
     return res.status(400).json({ message: "No items provided" });
   }

@@ -10,11 +10,13 @@ const sendEmail = async (to, templateId, dynamicData, subject) => {
     dynamic_template_data: dynamicData,
   };
 
+  console.log("Sending email with data:", dynamicData); // log
+
   try {
     await sgMail.send(msg);
-    console.log(`Email sent to ${to}`);
+    console.log(`✅ Email sent to ${to}`);
   } catch (error) {
-    console.error("Error sending email:", error);
+    console.error("❌ Error sending email:", error.response?.body || error.message);
     throw new Error("Failed to send email");
   }
 };
