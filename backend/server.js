@@ -7,11 +7,14 @@ const port = 5000;
 app.use(cookieParser());
 app.use("/webhook", require("./routes/webhook"));
 app.use(express.json());
-app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 
+require("./cron/weekly");
 const authRoutes = require("./routes/auth");
 const productRoutes = require("./routes/product");
 const providerRoutes = require("./routes/provider");
@@ -29,7 +32,6 @@ app.use("/", checkoutRoutes);
 app.use("/admin", adminRoutes);
 app.use("/users", usersRoutes);
 app.use("/location", locationRoutes);
-
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
