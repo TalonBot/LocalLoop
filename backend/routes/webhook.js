@@ -437,8 +437,48 @@ router.post(
               coupon_code,
               order_date,
             }
+            
           );
+                }
+        if (!session.metadata.group_order_id) {
+          try {
+            const couponCode = `LLOOP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+            const { data: newCoupon, error: couponInsertError } = await supabase
+              .from("coupons")
+              .insert([
+                {
+                  code: couponCode,
+                  discount_percent: 10,
+                  expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+                  usage_limit: 1,
+                },
+              ])
+              .select()
+              .single();
+
+            if (couponInsertError) {
+              console.error("Error creating coupon:", couponInsertError);
+            } else {
+              await sendEmail(
+                userData.email,
+                process.env.SENDGRID_COUPON_TEMPLATE_ID,
+                {
+                  user_name: userData.email,
+                  coupon_code: couponCode,
+                  discount_percent: 10,
+                  expiry_date: new Date(newCoupon.expires_at).toLocaleDateString("en-GB"),
+                },
+                "Here’s a special coupon for your next purchase!"
+              );
+
+              console.log(`Coupon ${couponCode} sent to ${userData.email}`);
+            }
+          } catch (err) {
+            console.error("Error generating or sending coupon:", err);
+          }
         }
+
 
         console.log("✅ Order created from Stripe checkout:", order.id);
         return res.status(200).send("Order created");
