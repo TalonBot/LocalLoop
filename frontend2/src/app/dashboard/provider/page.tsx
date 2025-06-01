@@ -20,6 +20,8 @@ import {
   ShoppingBag,
   X,
 } from "lucide-react";
+import { useSelector } from "react-redux";
+import { RootState } from "../../../redux/store"; // adjust path as needed
 
 interface ProviderProfile {
   id?: string;
@@ -28,7 +30,6 @@ interface ProviderProfile {
 
   location?: string;
   profile_image_url?: string;
-  rating?: number;
 }
 
 interface Product {
@@ -106,6 +107,9 @@ const ProviderDashboard = () => {
   const [timeframe, setTimeframe] = useState("month");
   const [isLoading, setIsLoading] = useState(true);
   const [availableProducts, setAvailableProducts] = useState([]);
+  const userId = useSelector((state: RootState) => state.authReducer.user?.id);
+  const [averageRating, setAverageRating] = useState<number | null>(null);
+  const [ratingCount, setRatingCount] = useState<number>(0);
 
   const [orders, setOrders] = useState<Order[]>([]);
 
@@ -131,6 +135,25 @@ const ProviderDashboard = () => {
       showError("Failed to fetch products");
     }
   };
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const fetchRating = async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE}/users/producer/${userId}/average-rating`
+        );
+        const data = await res.json();
+        setAverageRating(data.average_rating);
+        setRatingCount(data.count);
+      } catch (error) {
+        console.error("Failed to fetch rating", error);
+      }
+    };
+
+    fetchRating();
+  }, [userId]);
 
   const loadOrders = async () => {
     try {
@@ -737,13 +760,17 @@ const ProviderDashboard = () => {
               </div>
             </div>
           </div>
+
           <div className="bg-white p-6 rounded-lg shadow-sm border">
             <div className="flex items-center">
               <Star className="h-12 w-12 text-yellow-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Rating</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {profile?.rating?.toFixed(1) || "4.8"}
+                  {averageRating !== null ? averageRating.toFixed(1) : "N/A"}
+                </p>
+                <p className="text-sm text-gray-500">
+                  ({ratingCount} review{ratingCount !== 1 ? "s" : ""})
                 </p>
               </div>
             </div>
@@ -1129,29 +1156,29 @@ const ProviderDashboard = () => {
       email: "",
     });
     const [profileImage, setProfileImage] = useState<File | null>(null);
-    const [isUpdating, setIsUpdating] = useState(false);
-    const [isUpdatingStory, setIsUpdatingStory] = useState(false); // Separate loading state for story
     const [storyForm, setStoryForm] = useState<string>("");
-    const [profile, setProfile] = useState<ProviderProfile | null>(null);
+    const [profile, setProfile] = useState<any>(null);
+    const [certifications, setCertifications] = useState<string[]>([]);
+    const [newCert, setNewCert] = useState<string>("");
+    const [isSavingAll, setIsSavingAll] = useState(false);
 
-    // Load all initial data (profile + story) in one useEffect
     useEffect(() => {
       const loadInitialData = async () => {
         try {
-          // Load profile data
           const profileRes = await fetch(`${API_BASE}/provider/me`, {
             credentials: "include",
           });
           const profileData = await profileRes.json();
           setProfile(profileData);
+
           setProfileForm({
             full_name: profileData.provider.full_name || "",
             email: profileData.provider.email || "",
           });
 
-          // Load story data
           const storyRes = await apiCall("/provider/story");
           setStoryForm(storyRes.story || "");
+          setCertifications(storyRes.certifications || []);
         } catch (err) {
           showError("Failed to load profile data.");
         }
@@ -1160,8 +1187,17 @@ const ProviderDashboard = () => {
       loadInitialData();
     }, []);
 
-    const handleProfileUpdate = async () => {
-      setIsUpdating(true);
+    // Cleanup object URL when component unmounts or when profileImage changes
+    useEffect(() => {
+      return () => {
+        if (profileImage) {
+          URL.revokeObjectURL(profileImage as any);
+        }
+      };
+    }, [profileImage]);
+
+    const handleSaveAll = async () => {
+      setIsSavingAll(true);
       try {
         const formData = new FormData();
         formData.append("full_name", profileForm.full_name);
@@ -1175,28 +1211,25 @@ const ProviderDashboard = () => {
           body: formData,
         });
 
-        showSuccess("Profile updated successfully!");
+        await apiCall("/provider/story", {
+          method: "PUT",
+          body: JSON.stringify({
+            story: storyForm,
+            certifications,
+          }),
+        });
+
+        showSuccess("All changes saved successfully!");
       } catch (error) {
-        showError("Failed to update profile");
+        showError("Failed to save some changes.");
       } finally {
-        setIsUpdating(false);
+        setIsSavingAll(false);
       }
     };
 
-    const handleStoryUpdate = async () => {
-      setIsUpdatingStory(true);
-      try {
-        await apiCall("/provider/story", {
-          method: "PUT",
-          body: JSON.stringify({ story: storyForm }),
-        });
-        showSuccess("Story updated successfully!");
-      } catch (error) {
-        showError("Failed to update story");
-      } finally {
-        setIsUpdatingStory(false);
-      }
-    };
+    if (!profile) {
+      return <div>Loading profile...</div>;
+    }
 
     return (
       <div className="space-y-6">
@@ -1241,9 +1274,15 @@ const ProviderDashboard = () => {
             </label>
             <div className="flex items-center space-x-4">
               <div className="w-20 h-20 bg-gray-200 rounded-full overflow-hidden">
-                {profile?.profile_image_url ? (
+                {profileImage ? (
                   <img
-                    src={profile.profile_image_url}
+                    src={URL.createObjectURL(profileImage)}
+                    alt="New profile"
+                    className="w-20 h-20 object-cover"
+                  />
+                ) : profile?.provider?.profile_image_url ? (
+                  <img
+                    src={profile.provider.profile_image_url}
                     alt="Profile"
                     className="w-20 h-20 object-cover"
                   />
@@ -1274,6 +1313,7 @@ const ProviderDashboard = () => {
               </div>
             </div>
           </div>
+
           <div className="mt-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Your Story
@@ -1285,42 +1325,73 @@ const ProviderDashboard = () => {
               rows={4}
               placeholder="Tell us about yourself..."
             />
-            <div className="mt-2 flex justify-end">
-              <button
-                onClick={handleStoryUpdate}
-                disabled={isUpdatingStory}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center"
-              >
-                {isUpdatingStory ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                    Saving Story...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Story
-                  </>
-                )}
-              </button>
-            </div>
           </div>
 
           <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Certifications
+            </label>
+
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={newCert}
+                onChange={(e) => setNewCert(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
+                placeholder="Add new certification"
+              />
+              <button
+                onClick={() => {
+                  if (newCert.trim() !== "") {
+                    setCertifications([...certifications, newCert.trim()]);
+                    setNewCert("");
+                  }
+                }}
+                className="bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700"
+              >
+                Add
+              </button>
+            </div>
+
+            {certifications.length > 0 && (
+              <ul className="mt-3 space-y-1">
+                {certifications.map((cert, index) => (
+                  <li
+                    key={index}
+                    className="flex justify-between items-center bg-gray-100 px-3 py-2 rounded-md"
+                  >
+                    <span>{cert}</span>
+                    <button
+                      onClick={() =>
+                        setCertifications(
+                          certifications.filter((_, i) => i !== index)
+                        )
+                      }
+                      className="text-red-600 hover:text-red-800 text-sm"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="mt-6 flex justify-end">
             <button
-              onClick={handleProfileUpdate}
-              disabled={isUpdating}
+              onClick={handleSaveAll}
+              disabled={isSavingAll}
               className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center"
             >
-              {isUpdating ? (
+              {isSavingAll ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Updating Profile...
+                  Saving...
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Save Profile Changes
+                  Save Changes
                 </>
               )}
             </button>

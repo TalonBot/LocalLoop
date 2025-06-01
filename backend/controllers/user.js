@@ -310,6 +310,41 @@ const validateCoupon = async (req, res) => {
   res.json(data);
 };
 
+const getAverageRatingForProducer = async (req, res) => {
+  const producerId = req.params.id;
+
+  if (!producerId) {
+    return res.status(400).json({ error: "Producer ID is required" });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("ratings")
+      .select("rating")
+      .eq("user_rated_id", producerId);
+
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Failed to fetch ratings" });
+    }
+
+    if (!data || data.length === 0) {
+      return res.status(200).json({ average_rating: 0, count: 0 });
+    }
+
+    const total = data.reduce((sum, row) => sum + row.rating, 0);
+    const average = total / data.length;
+
+    return res.status(200).json({
+      average_rating: Number(average.toFixed(2)),
+      count: data.length,
+    });
+  } catch (err) {
+    console.error("Error in rating calculation:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
   getProducts,
   getProductById,
@@ -320,4 +355,5 @@ module.exports = {
   getCategoriesWithCounts,
   getPriceRange,
   validateCoupon,
+  getAverageRatingForProducer,
 };
