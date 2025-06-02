@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import { RootState } from "../../../redux/store"; // adjust path as needed
+import ConfirmPickupForm from "../../../components/ConfirmPickup"; // adjust path as needed
 
 interface ProviderProfile {
   id?: string;
@@ -70,24 +71,56 @@ interface RevenueData {
   timestamp: string;
 }
 
-interface Order {
+interface BaseDeliveryDetail {
+  address: string;
+  country?: string;
+  city: string;
+  additional_info?: string | null;
+  created_at: string;
+}
+
+interface ProductInfo {
+  id?: string;
+  name: string;
+  unit: string;
+  producer_id?: string;
+}
+
+interface OrderItem {
   id: string;
+  quantity: number;
+  unit_price: number;
+  product: ProductInfo;
+}
+
+interface IndividualOrder {
+  type: "individual";
+  order_id: string;
   consumer_id: string;
-  total_price: number;
   status: string;
   pickup_or_delivery: string;
+  finished: boolean;
   created_at: string;
-  order_items: {
-    id: string;
-    product_id: string;
-    quantity: number;
-    unit_price: number;
-    product: {
-      name: string;
-      unit: string;
-    };
-  }[];
+  item: OrderItem;
+  delivery_details: BaseDeliveryDetail[];
+  total_price: number;
 }
+
+interface GroupOrder {
+  finished: any;
+  group_order_participant_id: string;
+  type: "group";
+  group_order_id: string;
+  participant_user_id: string;
+  paid: boolean;
+  joined_at: string;
+  created_at: string;
+  item: OrderItem;
+  delivery_details: BaseDeliveryDetail[];
+  total_price: number;
+}
+
+type Order = IndividualOrder | GroupOrder;
 
 const ProviderDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -112,6 +145,8 @@ const ProviderDashboard = () => {
   const [ratingCount, setRatingCount] = useState<number>(0);
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     fetchGroupOrders();
@@ -594,7 +629,67 @@ const ProviderDashboard = () => {
     }
   };
 
+  const handleMarkAsFinished = async (
+    orderId: string,
+    isGroupOrder: boolean = false
+  ) => {
+    try {
+      const endpoint = `http://localhost:5000/provider/orders/${orderId}/finish?isGroupOrder=${isGroupOrder}`;
+
+      const response = await fetch(endpoint, {
+        credentials: "include",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to mark order as finished");
+      }
+
+      setOrders((prevOrders) =>
+        prevOrders.map((order) => {
+          if (order.type === "individual" && order.order_id === orderId) {
+            return { ...order, finished: true };
+          }
+          if (
+            order.type === "group" &&
+            order.group_order_participant_id === orderId
+          ) {
+            return { ...order, finished: true };
+          }
+          return order;
+        })
+      );
+
+      alert("Order marked as finished successfully!");
+    } catch (error) {
+      alert("Error marking order as finished: " + error.message);
+    }
+  };
+
   const Orders = () => {
+    const [showModal, setShowModal] = useState(false);
+    const [selectedItem, setSelectedItem] = useState(null);
+
+    const openModal = (order, item = null) => {
+      let consumerId = null;
+      let deliveryDetails = null;
+
+      if (order.type === "individual") {
+        consumerId = order.consumer_id;
+        deliveryDetails = order.delivery_details?.[0] ?? null;
+      } else if (order.type === "group") {
+        consumerId = order.participant_user_id;
+        deliveryDetails = order.delivery_details?.[0] ?? null;
+      }
+
+      setSelectedItem({ order, item, consumerId, deliveryDetails });
+      setShowModal(true);
+    };
+
     if (loading) {
       return (
         <div className="text-center py-12">
@@ -605,7 +700,7 @@ const ProviderDashboard = () => {
     }
 
     return (
-      <div className="space-y-6">
+      <div>
         <h2 className="text-2xl font-bold text-gray-900">Order History</h2>
 
         {orders.length === 0 ? (
@@ -636,55 +731,210 @@ const ProviderDashboard = () => {
                     Total
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    Payment
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Delivery
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {orders.map((order) => (
-                  <tr key={order.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {order.id.slice(0, 8)}...
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(order.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      <ul>
-                        {order.order_items.map((item) => (
-                          <li key={item.id}>
-                            {item.quantity} {item.product?.unit ?? "unit"} -{" "}
-                            {item.product?.name ?? "Unknown Product"}
-                          </li>
-                        ))}
-                      </ul>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${order.total_price.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          order.status === "completed"
-                            ? "bg-green-100 text-green-800"
-                            : order.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
+                {orders.map((order, idx) => {
+                  if (order.type === "individual") {
+                    return (
+                      <tr key={order.order_id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {order.order_id.slice(0, 8)}...
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(order.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          <ul>
+                            <li>
+                              {order.item.quantity} {order.item.product.unit} -{" "}
+                              {order.item.product.name}
+                            </li>
+                          </ul>
+                          <button
+                            className="mt-2 text-blue-600 hover:underline text-sm"
+                            onClick={() => openModal(order, order.item)}
+                          >
+                            View Details
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          ${order.total_price.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2 py-1 text-xs rounded-full ${
+                              order.status === "paid"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {order.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {order.pickup_or_delivery}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {order.finished ? (
+                            <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                              Finished
+                            </span>
+                          ) : (
+                            <button
+                              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+                              onClick={() =>
+                                handleMarkAsFinished(order.order_id)
+                              }
+                            >
+                              Mark as Finished
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  } else if (order.type === "group") {
+                    return (
+                      <tr
+                        key={`${order.group_order_id}-${order.item.id}-${idx}`}
                       >
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {order.pickup_or_delivery}
-                    </td>
-                  </tr>
-                ))}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {order.group_order_id.slice(0, 8)}...
+                          <br />
+                          <small className="text-gray-400">
+                            Participant: {order.participant_user_id.slice(0, 8)}
+                            ...
+                          </small>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(order.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          <ul>
+                            <li>
+                              {order.item.quantity} {order.item.product.unit} -{" "}
+                              {order.item.product.name}
+                            </li>
+                          </ul>
+                          <button
+                            className="mt-2 text-blue-600 hover:underline text-sm"
+                            onClick={() => openModal(order, order.item)}
+                          >
+                            View Details
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          ${order.total_price.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2 py-1 text-xs rounded-full ${
+                              order.paid
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {order.paid ? "paid" : "Not Paid"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {order.delivery_details?.length > 0
+                            ? "Delivery"
+                            : "Pickup"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {order.finished ? (
+                            <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                              Finished
+                            </span>
+                          ) : (
+                            <button
+                              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+                              onClick={() =>
+                                handleMarkAsFinished(
+                                  order.group_order_participant_id,
+                                  true
+                                )
+                              }
+                            >
+                              Mark as Finished
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  }
+                  return null;
+                })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Modal */}
+        {showModal && selectedItem && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md relative shadow-lg">
+              <button
+                className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
+                onClick={() => setShowModal(false)}
+              >
+                ✕
+              </button>
+
+              <h3 className="text-lg font-semibold mb-4">Order Item Details</h3>
+
+              <div className="space-y-2 text-sm text-gray-700">
+                <p>
+                  <strong>Product:</strong>{" "}
+                  {selectedItem.item?.product?.name || "N/A"}
+                </p>
+                <p>
+                  <strong>Quantity:</strong>{" "}
+                  {selectedItem.item?.quantity || "N/A"}
+                </p>
+
+                {/* Delivery Info */}
+                {selectedItem.deliveryDetails && (
+                  <>
+                    <p>
+                      <strong>Address:</strong>{" "}
+                      {selectedItem.deliveryDetails.address || "-"}
+                    </p>
+                    <p>
+                      <strong>City:</strong>{" "}
+                      {selectedItem.deliveryDetails.city || "-"}
+                    </p>
+                    <p>
+                      <strong>Country:</strong>{" "}
+                      {selectedItem.deliveryDetails.country || "-"}
+                    </p>
+                    {selectedItem.deliveryDetails.additional_info && (
+                      <p>
+                        <strong>Additional Info:</strong>{" "}
+                        {selectedItem.deliveryDetails.additional_info}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Show confirm pickup form only for pickup orders */}
+              {selectedItem.order.pickup_or_delivery === "pickup" && (
+                <ConfirmPickupForm
+                  orderId={selectedItem.order.id}
+                  consumerId={selectedItem.consumerId}
+                />
+              )}
+            </div>
           </div>
         )}
       </div>

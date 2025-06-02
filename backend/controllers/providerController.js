@@ -1,5 +1,6 @@
 const supabase = require("../config/supabase");
 const { v4: uuidv4 } = require("uuid");
+const { sendEmail } = require("../helpers/mailer");
 
 const updateProfile = async (req, res) => {
   try {
@@ -355,7 +356,8 @@ const getProviderOrders = async (req, res) => {
   try {
     const providerId = req.providerId;
 
-    const { data: orders, error } = await supabase
+    // 1. Fetch individual orders (same as before)
+    const { data: orders, error: ordersError } = await supabase
       .from("orders")
       .select(
         `
@@ -364,7 +366,15 @@ const getProviderOrders = async (req, res) => {
         total_price,
         status,
         pickup_or_delivery,
+        finished,
         created_at,
+        order_details (
+          address,
+          country,
+          city,
+          additional_info,
+          created_at
+        ),
         order_items (
           id,
           product_id,
@@ -380,31 +390,121 @@ const getProviderOrders = async (req, res) => {
       )
       .order("created_at", { ascending: false });
 
-    if (error) {
-      return res.status(500).json({
-        message: "Failed to fetch orders",
-        error,
+    if (ordersError) throw ordersError;
+
+    // Flatten individual orders by each order item belonging to the provider
+    const individualOrdersFlat = [];
+    (orders || []).forEach((order) => {
+      (order.order_items || [])
+        .filter((item) => item.product?.producer_id === providerId)
+        .forEach((item) => {
+          individualOrdersFlat.push({
+            type: "individual",
+            order_id: order.id,
+            consumer_id: order.consumer_id,
+            status: order.status,
+            pickup_or_delivery: order.pickup_or_delivery,
+            finished: order.finished,
+            created_at: order.created_at,
+            delivery_details: order.order_details || null,
+            item: {
+              id: item.id,
+              product: item.product,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+            },
+            total_price: Number(item.unit_price) * item.quantity,
+          });
+        });
+    });
+
+    // 2. Fetch group order participants
+    const { data: participants, error: participantsError } =
+      await supabase.from("group_orders_participants").select(`
+        id,
+        user_id,
+        group_order_id,
+        joined_at,
+        finished,
+        paid,
+        delivery:group_order_delivery_details (
+          address,
+          city,
+          country,
+          additional_info
+        ),
+        group_order:group_order_id (
+          id,
+          created_at
+        )
+      `);
+
+    if (participantsError) throw participantsError;
+
+    // 3. Fetch group order items from this provider
+    const { data: groupItems, error: groupItemsError } = await supabase
+      .from("group_order_items")
+      .select(
+        `
+        id,
+        group_order_id,
+        user_id,
+        product_id,
+        quantity,
+        unit_price,
+        created_at,
+        product:product_id (
+          id,
+          name,
+          unit,
+          producer_id
+        )
+      `
+      )
+      .eq("product.producer_id", providerId);
+
+    if (groupItemsError) throw groupItemsError;
+
+    // 4. Flatten group orders by participant and their items
+    const participantsMap = new Map();
+    participants.forEach((p) => {
+      participantsMap.set(`${p.group_order_id}-${p.user_id}`, p);
+    });
+
+    const groupOrdersFlat = [];
+    (groupItems || []).forEach((item) => {
+      const key = `${item.group_order_id}-${item.user_id}`;
+      const participant = participantsMap.get(key);
+
+      if (!participant) return; // skip if participant not found
+
+      groupOrdersFlat.push({
+        type: "group",
+        group_order_id: item.group_order_id,
+        group_order_participant_id: participant.id, // Fixed: using participant.id instead of participants.id
+        participant_user_id: item.user_id,
+        paid: participant.paid,
+        joined_at: participant.joined_at,
+        finished: participant.finished,
+        delivery_details: participant.delivery || null,
+        created_at: participant.group_order?.created_at || null,
+        item: {
+          id: item.id,
+          product: item.product,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+        },
+        total_price: Number(item.unit_price) * item.quantity,
       });
-    }
+    });
 
-    const filteredOrders = orders
-      .map((order) => {
-        const itemsForProvider = order.order_items.filter(
-          (item) => item.product?.producer_id === providerId
-        );
-        if (itemsForProvider.length === 0) return null;
+    // 5. Combine all and send response
+    const combined = [...individualOrdersFlat, ...groupOrdersFlat];
 
-        return {
-          ...order,
-          order_items: itemsForProvider,
-        };
-      })
-      .filter(Boolean);
-
-    return res.status(200).json(filteredOrders);
+    return res.status(200).json(combined);
   } catch (err) {
     console.error("Get provider orders error:", err);
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -469,11 +569,93 @@ const getGroupOrders = async (req, res) => {
   return res.status(200).json({ groupOrders: formattedOrders });
 };
 
+const confirmPickup = async (req, res) => {
+  const { orderId, consumerId, pickupNote } = req.body;
+
+  try {
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("email")
+      .eq("id", consumerId)
+      .single();
+
+    if (error || !user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    await sendEmail(user.email, process.env.SENDGRID_PICKUP_TEMPLATE_ID, {
+      pickupNote,
+      orderId,
+    });
+
+    res.status(200).json({ message: "Email sent to consumer" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const markOrderFinished = async (req, res) => {
+  const { orderId } = req.params;
+  const { isGroupOrder } = req.query; // Add this parameter to distinguish between order types
+
+  try {
+    if (isGroupOrder === "true") {
+      // Handle group order participant
+      const { data: groupData, error: groupError } = await supabase
+        .from("group_orders_participants")
+        .update({ finished: true })
+        .eq("id", orderId)
+        .select();
+
+      if (groupError) {
+        return res.status(400).json({ error: groupError.message });
+      }
+
+      if (!groupData || groupData.length === 0) {
+        return res
+          .status(404)
+          .json({ error: "Group order participant not found" });
+      }
+
+      return res.status(200).json({
+        message: "Group order participant marked as finished",
+        order: groupData[0],
+      });
+    } else {
+      // Handle individual order
+      const { data: individualData, error: individualError } = await supabase
+        .from("orders")
+        .update({ finished: true })
+        .eq("id", orderId)
+        .select();
+
+      if (individualError) {
+        return res.status(400).json({ error: individualError.message });
+      }
+
+      if (!individualData || individualData.length === 0) {
+        return res.status(404).json({ error: "Individual order not found" });
+      }
+
+      return res.status(200).json({
+        message: "Individual order marked as finished",
+        order: individualData[0],
+      });
+    }
+  } catch (err) {
+    console.error("Error finishing order:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
   updateProfile,
   deleteStory,
   createGroupOrder,
   getProviderRevenue,
+  confirmPickup,
+  markOrderFinished,
   getProviderInfo,
   getProviderOrders,
   getGroupOrders,
