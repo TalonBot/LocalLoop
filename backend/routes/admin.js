@@ -10,6 +10,8 @@ const {
   getAllProducerApplications,
   getProducerApplicationById,
   reviewProducerApplication,
+  fetchApprovedProviders,
+  getMonthlyProviderProfits,
 } = require("../controllers/admin/applicationController");
 const verifyAdmin = require("../middleware/validators/admin/validateAdmin");
 
@@ -25,5 +27,9 @@ router.patch(
   verifyAdmin,
   reviewProducerApplication
 );
+
+router.get("/providers", verifyAdmin, fetchApprovedProviders);
+
+router.get("/profits/:providerId", getMonthlyProviderProfits);
 
 module.exports = router;
