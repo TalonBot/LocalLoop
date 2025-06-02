@@ -23,7 +23,10 @@ const checkoutRoutes = require("./routes/checkoutRoutes");
 const adminRoutes = require("./routes/admin");
 const usersRoutes = require("./routes/users");
 const locationRoutes = require("./routes/location");
+//dodano
+const publicRoutes = require("./routes/public");
 
+app.use("/public", publicRoutes);
 app.use("/auth", authRoutes);
 app.use("/product", productRoutes);
 app.use("/provider", providerRoutes);
