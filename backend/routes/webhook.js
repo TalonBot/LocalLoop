@@ -196,16 +196,16 @@ router.post(
             .eq("id", userId)
             .single();
 
-          // Fetch one valid coupon (active, not expired, not over usage limit)
-          const { data: couponData, error: couponError } = await supabase
-            .from("coupons")
-            .select("code, discount_percent, expires_at")
-            .eq("active", true)
-            .lt("expires_at", new Date().toISOString()) // still valid
-            .or("usage_limit.is.null,usage_limit.gt.times_used") // usage limit not reached or unlimited
-            .order("created_at", { ascending: true })
-            .limit(1)
-            .single();
+          // // Fetch one valid coupon (active, not expired, not over usage limit) stara koda smz
+          // const { data: couponData, error: couponError } = await supabase
+          //   .from("coupons")
+          //   .select("code, discount_percent, expires_at")
+          //   .eq("active", true)
+          //   .lt("expires_at", new Date().toISOString()) // still valid
+          //   .or("usage_limit.is.null,usage_limit.gt.times_used") // usage limit not reached or unlimited
+          //   .order("created_at", { ascending: true })
+          //   .limit(1)
+          //   .single();
 
           if (!userFetchError && userData) {
             const dynamicData = {
@@ -215,16 +215,38 @@ router.post(
               additional_info,
             };
 
-            if (couponData) {
-              dynamicData.coupon_code = couponData.code;
-              dynamicData.discount_percent = couponData.discount_percent;
-              dynamicData.expires_at = new Date(
-                couponData.expires_at
-              ).toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-              });
+            try {
+              const couponCode = `LLOOP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+              const discountPercent = Math.floor(Math.random() * (15 - 5 + 1)) + 5; // 5–15%
+
+              const { data: newCoupon, error: couponInsertError } = await supabase
+                .from("coupons")
+                .insert([
+                  {
+                    code: couponCode,
+                    discount_percent: discountPercent,
+                    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+                    usage_limit: 1,
+                  },
+                ])
+                .select()
+                .single();
+
+              if (couponInsertError) {
+                console.error("Error creating coupon:", couponInsertError);
+              } else {
+                dynamicData.coupon_code = couponCode;
+                dynamicData.discount_percent = discountPercent;
+                dynamicData.expires_at = new Date(newCoupon.expires_at).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                });
+
+                console.log(`✅ Coupon ${couponCode} generated for group order user ${userData.email}`);
+              }
+            } catch (err) {
+              console.error("Error generating coupon for group order:", err);
             }
 
             await sendEmail(
