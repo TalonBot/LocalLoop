@@ -89,7 +89,7 @@ const ProduceCountdown = () => {
             {/* Call to action buttons */}
             <div className="flex flex-wrap gap-4 mt-8">
               <a
-                href="#"
+                href="/group-orders"
                 className="inline-flex font-medium text-sm text-black bg-emerald-600 py-3 px-6 rounded-lg ease-out duration-200 hover:bg-emerald-700 shadow-lg"
               >
                 Pre-Order Now
