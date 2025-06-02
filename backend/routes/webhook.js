@@ -189,65 +189,50 @@ router.post(
             }
           }
 
-          // Fetch user email and name to send email
+          // Fetch user email
           const { data: userData, error: userFetchError } = await supabase
             .from("users")
             .select("email")
             .eq("id", userId)
             .single();
 
+          // Fetch one valid coupon (active, not expired, not over usage limit)
+          const { data: couponData, error: couponError } = await supabase
+            .from("coupons")
+            .select("code, discount_percent, expires_at")
+            .eq("active", true)
+            .lt("expires_at", new Date().toISOString()) // still valid
+            .or("usage_limit.is.null,usage_limit.gt.times_used") // usage limit not reached or unlimited
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .single();
+
           if (!userFetchError && userData) {
+            const dynamicData = {
+              group_order_id: groupOrderId,
+              items,
+              deliveryDetails,
+              additional_info,
+            };
+
+            if (couponData) {
+              dynamicData.coupon_code = couponData.code;
+              dynamicData.discount_percent = couponData.discount_percent;
+              dynamicData.expires_at = new Date(
+                couponData.expires_at
+              ).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              });
+            }
+
             await sendEmail(
               userData.email,
               process.env.SENDGRID_GROUP_ORDER_TEMPLATE_ID,
-              {
-                group_order_id: groupOrderId,
-                items,
-                deliveryDetails,
-                additional_info,
-              }
+              dynamicData
             );
           }
-
-          // group orders logika za kupone !!
-                  try {
-            const couponCode = `LLOOP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-            const discountPercent = Math.floor(Math.random() * (15 - 5 + 1)) + 5; // Random 5–15%
-
-            const { data: newCoupon, error: couponInsertError } = await supabase
-              .from("coupons")
-              .insert([
-                {
-                  code: couponCode,
-                  discount_percent: discountPercent,
-                  expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-                  usage_limit: 1,
-                },
-              ])
-              .select()
-              .single();
-
-            if (couponInsertError) {
-              console.error("Error creating coupon:", couponInsertError);
-            } else {
-              await sendEmail(
-                userData.email,
-                process.env.SENDGRID_COUPON_TEMPLATE_ID,
-                {
-                  user_name: userData.email,
-                  coupon_code: couponCode,
-                  discount_percent: discountPercent,
-                  expiry_date: new Date(newCoupon.expires_at).toLocaleDateString("en-GB"),
-                },
-                "Here’s a special coupon for your next purchase!"
-              );
-
-              console.log(`Coupon ${couponCode} sent to ${userData.email} (Discount: ${discountPercent}%)`);
-            }
-          } catch (err) {
-            console.error("Error generating or sending coupon:", err);
-          }
-
 
           console.log(`Group order processed for user ${userId}`);
           return res.status(200).send("Group order processed");
@@ -477,49 +462,8 @@ router.post(
               coupon_code,
               order_date,
             }
-            
           );
-                }
-// koda za kupone + mail (ne deluje ker nimam privilegijov :<) , tu je za single userje, ce ne zelimo meti tako lahko vrzemo ven
-                      try {
-              const couponCode = `LLOOP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-              const discountPercent = Math.floor(Math.random() * (15 - 5 + 1)) + 5; // Random between 5–15%
-
-              const { data: newCoupon, error: couponInsertError } = await supabase
-                .from("coupons")
-                .insert([
-                  {
-                    code: couponCode,
-                    discount_percent: discountPercent,
-                    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-                    usage_limit: 1,
-                  },
-                ])
-                .select()
-                .single();
-
-              if (couponInsertError) {
-                console.error("Error creating coupon:", couponInsertError);
-              } else {
-                await sendEmail(
-                  userData.email,
-                  process.env.SENDGRID_COUPON_TEMPLATE_ID,
-                  {
-                    user_name: userData.email,
-                    coupon_code: couponCode,
-                    discount_percent: discountPercent,
-                    expiry_date: new Date(newCoupon.expires_at).toLocaleDateString("en-GB"),
-                  },
-                  "Here’s a special coupon for your next purchase!"
-                );
-
-                console.log(`Coupon ${couponCode} sent to ${userData.email} (Discount: ${discountPercent}%)`);
-              }
-            } catch (err) {
-              console.error("Error generating or sending coupon:", err);
-            }
-        
-
+        }
 
         console.log("✅ Order created from Stripe checkout:", order.id);
         return res.status(200).send("Order created");
