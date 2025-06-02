@@ -1,7 +1,5 @@
-
 "use client";
 
-import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 interface Product {
@@ -10,19 +8,17 @@ interface Product {
   max_quantity: number;
 }
 
-export default function GroupOrderDetailPage() {
-  const router = useRouter();
-  const { id } = router.query;
-
+export default function GroupOrderDetailPage({ params }: { params: { id: string } }) {
+  
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedItems, setSelectedItems] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notes, setNotes] = useState("");
 
-  useEffect(() => {
-    if (!id) return;
+  const { id } = params;
 
+  useEffect(() => {
     const fetchProducts = async () => {
       try {
         const res = await fetch(`http://localhost:5000/public/group-orders/${id}/products`);
