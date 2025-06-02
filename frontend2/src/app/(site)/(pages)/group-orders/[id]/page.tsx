@@ -8,20 +8,26 @@ interface Product {
   max_quantity: number;
 }
 
+interface CartItem {
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  group_order_id: string;
+}
+
 export default function GroupOrderDetailPage({ params }: { params: { id: string } }) {
-  
+  const { id: groupOrderId } = params;
+
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedItems, setSelectedItems] = useState<Record<string, number>>({});
+  const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({});
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [notes, setNotes] = useState("");
-
-  const { id } = params;
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/public/group-orders/${id}/products`);
+        const res = await fetch(`http://localhost:5000/public/group-orders/${groupOrderId}/products`);
         if (!res.ok) throw new Error("Failed to load products");
         const data = await res.json();
         setProducts(data.products || []);
@@ -33,43 +39,45 @@ export default function GroupOrderDetailPage({ params }: { params: { id: string 
     };
 
     fetchProducts();
-  }, [id]);
+  }, [groupOrderId]);
 
-  const handleChange = (productId: string, quantity: number) => {
-    setSelectedItems((prev) => ({ ...prev, [productId]: quantity }));
+  const toggleSelect = (productId: string) => {
+    setSelectedItems((prev) => ({ ...prev, [productId]: !prev[productId] }));
   };
 
-  const handleSubmit = async () => {
-    const items = Object.entries(selectedItems)
-      .filter(([_, qty]) => qty > 0)
-      .map(([product_id, quantity]) => ({ product_id, quantity }));
+  const handleQuantityChange = (productId: string, quantity: number) => {
+    setQuantities((prev) => ({ ...prev, [productId]: quantity }));
+  };
 
-    if (items.length === 0) {
-      alert("Select at least one product.");
+  const handleAddToCart = () => {
+    const cartItems: CartItem[] = [];
+
+    for (const product of products) {
+      const selected = selectedItems[product.product_id];
+      const quantity = quantities[product.product_id];
+
+      if (selected && quantity > 0 && quantity <= product.max_quantity) {
+        cartItems.push({
+          product_id: product.product_id,
+          quantity,
+          unit_price: product.unit_price,
+          group_order_id: groupOrderId,
+        });
+      }
+    }
+
+    if (cartItems.length === 0) {
+      alert("Please select at least one product with valid quantity.");
       return;
     }
 
-    try {
-      const res = await fetch("http://localhost:5000/consumer/join-group-order", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          group_order_id: id,
-          items,
-          notes,
-        }),
-      });
+    // Store in localStorage 
+    const existing = JSON.parse(localStorage.getItem("cart") || "[]");
+    const updated = [...existing, ...cartItems];
+    localStorage.setItem("cart", JSON.stringify(updated));
 
-      const data = await res.json();
-      if (res.ok) {
-        window.location.href = data.url;
-      } else {
-        alert(data.message || "Failed to join group order");
-      }
-    } catch (err) {
-      alert("Error submitting group order");
-    }
+    alert("Items added to cart!");
+    window.location.href = "/cart"; 
   };
 
   return (
@@ -81,49 +89,47 @@ export default function GroupOrderDetailPage({ params }: { params: { id: string 
       ) : error ? (
         <p className="text-red-500">{error}</p>
       ) : (
-        <div className="space-y-4">
-          {products.map((product) => (
-            <div
-              key={product.product_id}
-              className="border p-4 rounded-md flex justify-between items-center"
-            >
-              <div>
-                <p className="font-medium">Product {product.product_id}</p>
-                <p className="text-sm text-gray-600">
-                  Price: €{product.unit_price.toFixed(2)} — Max: {product.max_quantity}
-                </p>
-              </div>
-              <input
-                type="number"
-                min={0}
-                max={product.max_quantity}
-                value={selectedItems[product.product_id] || ""}
-                onChange={(e) => handleChange(product.product_id, parseInt(e.target.value))}
-                className="w-24 px-2 py-1 border border-gray-300 rounded"
-              />
-            </div>
-          ))}
+        <>
+          <div className="space-y-4">
+            {products.map((product) => (
+              <div
+                key={product.product_id}
+                className="border p-4 rounded-md flex justify-between items-center"
+              >
+                <div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems[product.product_id] || false}
+                      onChange={() => toggleSelect(product.product_id)}
+                    />
+                    <span className="font-medium">Product {product.product_id}</span>
+                  </label>
+                  <p className="text-sm text-gray-600">
+                    Price: €{product.unit_price.toFixed(2)} — Max: {product.max_quantity}
+                  </p>
+                </div>
 
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes (optional)
-            </label>
-            <textarea
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded"
-              placeholder="Any special instructions?"
-            />
+                <input
+                  type="number"
+                  min={0}
+                  max={product.max_quantity}
+                  value={quantities[product.product_id] || ""}
+                  onChange={(e) => handleQuantityChange(product.product_id, parseInt(e.target.value))}
+                  className="w-24 px-2 py-1 border border-gray-300 rounded"
+                  placeholder="Qty"
+                />
+              </div>
+            ))}
           </div>
 
           <button
-            onClick={handleSubmit}
+            onClick={handleAddToCart}
             className="mt-6 bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700"
           >
-            Join Group Order
+            Add Selected to Cart
           </button>
-        </div>
+        </>
       )}
     </div>
   );
