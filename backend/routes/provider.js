@@ -30,6 +30,20 @@ router.get(
   providerController.getProviderRevenue
 );
 
+router.post(
+  "/pickup",
+  verifyProvider,
+  refreshSession,
+  providerController.confirmPickup
+);
+
+router.post(
+  "/orders/:orderId/finish",
+  verifyProvider,
+  refreshSession,
+  providerController.markOrderFinished
+);
+
 router.get(
   "/orders",
   verifyProvider,
