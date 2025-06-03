@@ -1,7 +1,9 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
+import { addItemToCart } from "@/redux/features/cart-slice";
 
 interface Product {
   product_id: string;
@@ -9,13 +11,6 @@ interface Product {
   max_quantity: number;
   name: string;
   image_url: string | null;
-}
-
-interface CartItem {
-  product_id: string;
-  quantity: number;
-  unit_price: number;
-  group_order_id: string;
 }
 
 export default function GroupOrderDetailPage() {
@@ -27,6 +22,9 @@ export default function GroupOrderDetailPage() {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const dispatch = useDispatch();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -56,33 +54,38 @@ export default function GroupOrderDetailPage() {
   };
 
   const handleAddToCart = () => {
-    const cartItems: CartItem[] = [];
+    let addedAny = false;
 
     for (const product of products) {
       const selected = selectedItems[product.product_id];
       const quantity = quantities[product.product_id];
 
       if (selected && quantity > 0 && quantity <= product.max_quantity) {
-        cartItems.push({
-          product_id: product.product_id,
-          quantity,
-          unit_price: product.unit_price,
-          group_order_id: groupOrderId,
-        });
+        dispatch(
+          addItemToCart({
+            id: product.product_id,
+            title: product.name,
+            price: product.unit_price,
+            discountedPrice: product.unit_price,
+            quantity,
+            imgs: product.image_url
+              ? {
+                  thumbnails: [product.image_url],
+                  previews: [product.image_url],
+                }
+              : undefined,
+          })
+        );
+        addedAny = true;
       }
     }
 
-    if (cartItems.length === 0) {
-      alert("Please select at least one product with valid quantity.");
+    if (!addedAny) {
+      alert("Please select at least one product with a valid quantity.");
       return;
     }
 
-    const existing = JSON.parse(localStorage.getItem("cart") || "[]");
-    const updated = [...existing, ...cartItems];
-    localStorage.setItem("cart", JSON.stringify(updated));
-
-    alert("Items added to cart!");
-    window.location.href = "/cart";
+    router.push("/cart");
   };
 
   return (
@@ -102,12 +105,16 @@ export default function GroupOrderDetailPage() {
                 className="border p-4 rounded-md flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
                 <div className="flex items-center gap-4">
-                  {product.image_url && (
+                  {product.image_url ? (
                     <img
                       src={product.image_url}
                       alt={product.name}
                       className="w-16 h-16 rounded object-cover"
                     />
+                  ) : (
+                    <div className="w-16 h-16 flex items-center justify-center bg-gray-100 text-gray-500 text-sm rounded">
+                      No Image
+                    </div>
                   )}
                   <div>
                     <h3 className="font-semibold">{product.name}</h3>
