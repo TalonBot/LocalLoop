@@ -38,7 +38,7 @@ const ProducerDetails: React.FC = () => {
 
   useEffect(() => {
     if (!id) return;
-    fetch(`${process.env.API_BASE}/users/producers/${id}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE}/users/producers/${id}`)
       .then((res) => res.json())
       .then((data) => {
         setProducer({

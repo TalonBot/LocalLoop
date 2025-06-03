@@ -99,7 +99,9 @@ const ProducersGrid: React.FC = () => {
   const [filteredProducers, setFilteredProducers] = useState<Producer[]>([]);
 
   useEffect(() => {
-    fetch(`${process.env.API_BASE}/users/producers/page?page=1&limit=10`)
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE}/users/producers/page?page=1&limit=10`
+    )
       .then((res) => res.json())
       .then((data) => {
         setProducers(data.producers || []);

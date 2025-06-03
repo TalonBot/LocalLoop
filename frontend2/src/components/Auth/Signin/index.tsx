@@ -25,14 +25,17 @@ const Signin = () => {
     dispatch(loginStart());
 
     try {
-      const response = await fetch(`${process.env.API_BASE}/auth/login`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_NEXT_PUBLIC_API_BASE}/auth/login`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
       const data = await response.json();
 
@@ -57,7 +60,7 @@ const Signin = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = `${process.env.API_BASE}/auth/google`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE}/auth/google`;
   };
 
   return (

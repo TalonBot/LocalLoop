@@ -177,7 +177,7 @@ const ProviderDashboard = () => {
     const fetchRating = async () => {
       try {
         const res = await fetch(
-          `${process.env.API_BASE}/users/producer/${userId}/average-rating`
+          `${process.env.NEXT_PUBLIC_API_BASE}/users/producer/${userId}/average-rating`
         );
         const data = await res.json();
         setAverageRating(data.average_rating);
@@ -243,14 +243,17 @@ const ProviderDashboard = () => {
 
   const apiCall = async (endpoint: string, options: ApiOptions = {}) => {
     try {
-      const response = await fetch(`${process.env.API_BASE}${endpoint}`, {
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(options.headers || {}),
-        },
-        ...options,
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE}${endpoint}`,
+        {
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {}),
+          },
+          ...options,
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -377,7 +380,7 @@ const ProviderDashboard = () => {
         let response;
         if (product) {
           response = await fetch(
-            `${process.env.API_BASE}/product/${product.id}`,
+            `${process.env.NEXT_PUBLIC_API_BASE}/product/${product.id}`,
             {
               method: "PUT",
               credentials: "include",
@@ -385,11 +388,14 @@ const ProviderDashboard = () => {
             }
           );
         } else {
-          response = await fetch(`${process.env.API_BASE}/product/new`, {
-            method: "POST",
-            credentials: "include",
-            body: formDataToSend,
-          });
+          response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_BASE}/product/new`,
+            {
+              method: "POST",
+              credentials: "include",
+              body: formDataToSend,
+            }
+          );
         }
 
         if (!response.ok) {
@@ -634,7 +640,7 @@ const ProviderDashboard = () => {
     isGroupOrder: boolean = false
   ) => {
     try {
-      const endpoint = `${process.env.API_BASE}/provider/orders/${orderId}/finish?isGroupOrder=${isGroupOrder}`;
+      const endpoint = `${process.env.NEXT_PUBLIC_API_BASE}/provider/orders/${orderId}/finish?isGroupOrder=${isGroupOrder}`;
 
       const response = await fetch(endpoint, {
         credentials: "include",
@@ -1416,7 +1422,7 @@ const ProviderDashboard = () => {
       const loadInitialData = async () => {
         try {
           const profileRes = await fetch(
-            `${process.env.API_BASE}/provider/me`,
+            `${process.env.NEXT_PUBLIC_API_BASE}/provider/me`,
             {
               credentials: "include",
             }
@@ -1458,7 +1464,7 @@ const ProviderDashboard = () => {
           formData.append("profile_image", profileImage);
         }
 
-        await fetch(`${process.env.API_BASE}/provider/me`, {
+        await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/provider/me`, {
           method: "PUT",
           credentials: "include",
           body: formData,

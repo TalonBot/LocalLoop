@@ -47,7 +47,7 @@ const Checkout = () => {
     }
     try {
       const res = await fetch(
-        `${process.env.API_BASE}/users/validate/${couponCode}`
+        `${process.env.NEXT_PUBLIC_API_BASE}/users/validate/${couponCode}`
       );
       if (!res.ok) throw new Error("Invalid coupon");
       const data = await res.json();
@@ -94,8 +94,8 @@ const Checkout = () => {
 
     try {
       const endpoint = isGroupOrder
-        ? `${process.env.API_BASE}/consumer/join-group-order`
-        : `${process.env.API_BASE}/create-checkout-session`;
+        ? `${process.env.NEXT_PUBLIC_API_BASE}/consumer/join-group-order`
+        : `${process.env.NEXT_PUBLIC_API_BASE}/create-checkout-session`;
 
       const response = await fetch(endpoint, {
         method: "POST",

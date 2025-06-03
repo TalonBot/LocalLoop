@@ -10,7 +10,7 @@ export default function GroupOrdersPage() {
   const icons = ["🌱", "🍞", "🍯", "🥕", "🧀", "🍇"];
 
   useEffect(() => {
-    fetch(`${process.env.API_BASE}/public/group-orders`)
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE}/public/group-orders`)
       .then((res) => res.json())
       .then((data) => {
         setGroupOrders(data.groupOrders);

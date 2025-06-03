@@ -11,13 +11,16 @@ const ConfirmPickupForm = ({ orderId, consumerId }) => {
     setMessage("");
 
     try {
-      const res = await fetch(`${process.env.API_BASE}/provider/pickup`, {
-        credentials: "include",
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE}/provider/pickup`,
+        {
+          credentials: "include",
 
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, consumerId, pickupNote }),
-      });
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId, consumerId, pickupNote }),
+        }
+      );
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Something went wrong");

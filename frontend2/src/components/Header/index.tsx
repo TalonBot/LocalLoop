@@ -42,7 +42,7 @@ const Header = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${process.env.API_BASE}/auth/logout`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/auth/logout`, {
         method: "POST",
         credentials: "include",
       });

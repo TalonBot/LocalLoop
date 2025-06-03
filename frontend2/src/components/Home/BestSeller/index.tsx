@@ -10,7 +10,9 @@ const FeaturedProducers = () => {
 
   // Fetch producers and their ratings from API on mount
   useEffect(() => {
-    fetch(`${process.env.API_BASE}/users/producers/page?page=1&limit=10`)
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE}/users/producers/page?page=1&limit=10`
+    )
       .then((res) => res.json())
       .then(async (data) => {
         if (data && Array.isArray(data.producers)) {
@@ -19,7 +21,7 @@ const FeaturedProducers = () => {
               let rating = "N/A";
               try {
                 const res = await fetch(
-                  `${process.env.API_BASE}/users/producer/${p.id}/average-rating`
+                  `${process.env.NEXT_PUBLIC_API_BASE}/users/producer/${p.id}/average-rating`
                 );
                 const ratingData = await res.json();
                 // We expect the endpoint to return { average_rating: number, count: number }
