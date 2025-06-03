@@ -139,24 +139,38 @@ const AdminDashboard = () => {
     }
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/admin/generate-pdf/${selectedProvider}/${selectedMonth}/${selectedYear}`,
+      // 1) Fetch invoice JSON data
+      const dataResponse = await fetch(
+        `${API_BASE_URL}/admin/profits/${selectedProvider}?month=${selectedMonth}&year=${selectedYear}`,
         {
           method: "GET",
-          credentials: "include", // Include cookies/session
+          credentials: "include",
         }
       );
 
-      if (!response.ok) throw new Error("Failed to generate invoice");
+      if (!dataResponse.ok) throw new Error("Failed to fetch invoice data");
 
-      const blob = await response.blob();
+      const invoiceData = await dataResponse.json();
 
-      // Create a download link for the PDF
+      // 2) Send JSON data to PDF generator endpoint
+      const pdfResponse = await fetch(`${API_BASE_URL}/admin/generate-pdf`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(invoiceData),
+      });
+
+      if (!pdfResponse.ok) throw new Error("Failed to generate PDF");
+
+      const blob = await pdfResponse.blob();
+
+      // 3) Create a download link for the PDF
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
 
-      // Optional: Generate a friendly filename
       const monthLabel =
         months.find((m) => m.value === selectedMonth)?.label || selectedMonth;
       a.download = `invoice_${selectedProvider}_${monthLabel}_${selectedYear}.pdf`;
@@ -588,7 +602,7 @@ const AdminDashboard = () => {
                     <option value="">Choose provider...</option>
                     {approvedProviders.map((provider) => (
                       <option key={provider.id} value={provider.id}>
-                        {provider.business_name}
+                        {provider.full_name}
                       </option>
                     ))}
                   </select>
@@ -660,7 +674,7 @@ const AdminDashboard = () => {
                         </div>
                         <div className="ml-4">
                           <p className="text-sm font-medium text-gray-900">
-                            {provider.business_name}
+                            {provider.full_name}
                           </p>
                           <p className="text-sm text-gray-500">
                             {provider.users?.email}

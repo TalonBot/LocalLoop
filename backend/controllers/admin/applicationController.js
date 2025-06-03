@@ -168,28 +168,21 @@ const reviewProducerApplication = async (req, res) => {
 const fetchApprovedProviders = async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from("producer_applications")
+      .from("users")
       .select(
         `
         id,
-        user_id,
-        business_name,
-        reason,
-        status,
-        admin_notes,
-        created_at,
-        reviewed_at,
-        users (
-          full_name,
-          email
-        )
+        full_name,
+        email,
+        role,
+        created_at
       `
       )
-      .eq("status", "approved")
+      .eq("role", "provider")
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Error fetching approved providers:", error);
+      console.error("Error fetching providers:", error);
       return res.status(500).json({ error: error.message });
     }
 
@@ -204,6 +197,7 @@ const getMonthlyProviderProfits = async (req, res) => {
   try {
     const providerId = req.params.providerId;
     const { timeframe, month, year } = req.query;
+
     const now = new Date();
 
     let startDate = null;
@@ -241,11 +235,25 @@ const getMonthlyProviderProfits = async (req, res) => {
       }
     }
 
-    // convert to ISO strings or null
     const pStartDate = startDate ? startDate.toISOString() : null;
     const pEndDate = endDate ? endDate.toISOString() : null;
 
-    // 1) Fetch regular orders
+    let providerName = "N/A";
+    let providerEmail = "N/A";
+
+    const { data: providerData, error: providerError } = await supabase
+      .from("users")
+      .select("full_name, email")
+      .eq("id", providerId)
+      .single();
+
+    if (providerError) {
+      console.warn("Failed to fetch provider info:", providerError.message);
+    } else if (providerData) {
+      providerName = providerData.full_name || "N/A";
+      providerEmail = providerData.email || "N/A";
+    }
+
     const { data: regularOrdersData, error: regularError } = await supabase.rpc(
       "get_regular_provider_orders",
       {
@@ -262,7 +270,6 @@ const getMonthlyProviderProfits = async (req, res) => {
       });
     }
 
-    // Group regular orders by order_id
     const regularOrdersMap = {};
     regularOrdersData.forEach((item) => {
       const orderId = item.order_id;
@@ -289,7 +296,6 @@ const getMonthlyProviderProfits = async (req, res) => {
       0
     );
 
-    // 2) Fetch group order participants & items
     const { data: groupItemsData, error: groupError } = await supabase.rpc(
       "get_group_provider_participant_items",
       {
@@ -306,7 +312,6 @@ const getMonthlyProviderProfits = async (req, res) => {
       });
     }
 
-    // Calculate total revenue from group order items
     const filteredGroupItems = groupItemsData.map((item) => ({
       participant_id: item.participant_id,
       group_order_id: item.group_order_id,
@@ -325,14 +330,13 @@ const getMonthlyProviderProfits = async (req, res) => {
       0
     );
 
-    // Calculate delivery fees (assuming +15 per delivery participant)
     const deliveryFeePerOrder = 15;
     const deliveryCount = filteredGroupItems.filter(
       (i) => i.pickup_or_delivery === "delivery"
     ).length;
     const totalDeliveryFees = deliveryCount * deliveryFeePerOrder;
 
-    const finalTotalRevenue =
+    const combinedRevenue =
       totalRegularRevenue + totalGroupRevenue + totalDeliveryFees;
 
     return res.status(200).json({
@@ -340,12 +344,14 @@ const getMonthlyProviderProfits = async (req, res) => {
         regular_orders: parseFloat(totalRegularRevenue.toFixed(2)),
         group_orders: parseFloat(totalGroupRevenue.toFixed(2)),
         delivery_fees: totalDeliveryFees,
-        total: parseFloat(finalTotalRevenue.toFixed(2)),
+        total: parseFloat(combinedRevenue.toFixed(2)),
       },
       timeframe: month && year ? `${month}-${year}` : timeframe || "all",
       regular_orders: regularOrders,
       group_order_items: filteredGroupItems,
       orderCount: regularOrders.length + filteredGroupItems.length,
+      invoice_recipient: providerName,
+      invoice_email: providerEmail,
       timestamp: new Date(),
     });
   } catch (err) {

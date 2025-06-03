@@ -14,7 +14,7 @@ const {
   getMonthlyProviderProfits,
 } = require("../controllers/admin/applicationController");
 const verifyAdmin = require("../middleware/validators/admin/validateAdmin");
-
+const { generatePdf } = require("../controllers/admin/pdf");
 router.get("/coupon", verifyAdmin, getCoupons);
 router.post("/coupon", verifyAdmin, createCoupon);
 router.put("/coupon/:id", verifyAdmin, updateCoupon);
@@ -30,6 +30,16 @@ router.patch(
 
 router.get("/providers", verifyAdmin, fetchApprovedProviders);
 
-router.get("/profits/:providerId", getMonthlyProviderProfits);
+router.get("/profits/:providerId", verifyAdmin, getMonthlyProviderProfits);
+
+router.post("/generate-pdf", verifyAdmin, (req, res) => {
+  const data = req.body;
+
+  if (!data || !data.revenue || !data.timeframe) {
+    return res.status(400).send({ error: "Invalid payload structure" });
+  }
+
+  generatePdf(data, res);
+});
 
 module.exports = router;
