@@ -12,6 +12,8 @@ import { removeAllItemsFromCart } from "@/redux/features/cart-slice";
 const Cart = () => {
   const cartItems = useAppSelector((state) => state.cartReducer.items);
   const dispatch = useDispatch();
+
+  
   return (
     <>
       {/* <!-- ===== Breadcrumb Section Start ===== --> */}

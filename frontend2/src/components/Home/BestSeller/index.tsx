@@ -1,27 +1,45 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { CheckCircle, Eye, Heart, Award } from "lucide-react";
+import { Eye, Heart, Award } from "lucide-react";
 
 const FeaturedProducers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [producers, setProducers] = useState([]);
   const [favorites, setFavorites] = useState(new Set());
 
-  // Fetching producers from API on mount
+  // Fetch producers and their ratings from API on mount
   useEffect(() => {
     fetch("http://localhost:5000/users/producers/page?page=1&limit=10")
       .then((res) => res.json())
-      .then((data) => {
+      .then(async (data) => {
         if (data && Array.isArray(data.producers)) {
-          const formatted = data.producers.map((p) => ({
-            id: p.id,
-            name: p.full_name,
-            description: p.description || "No description available.",
-            profileUrl: `/producers/${p.id}`,
-            verified: true, 
-            image: "👤", 
-            badge: "Certified Producer", 
-          }));
+          const formatted = await Promise.all(
+            data.producers.map(async (p) => {
+              let rating = "N/A";
+              try {
+                const res = await fetch(
+                  `http://localhost:5000/users/producer/${p.id}/average-rating`
+                );
+                const ratingData = await res.json();
+                // We expect the endpoint to return { average_rating: number, count: number }
+                if (ratingData && typeof ratingData.average_rating === "number") {
+                  rating = ratingData.average_rating.toFixed(1);
+                }
+              } catch (error) {
+                console.error("Failed to fetch rating for", p.id, error);
+              }
+              return {
+                id: p.id,
+                name: p.full_name,
+                description: p.description || "No description available.",
+                profileUrl: `/producers/${p.id}`,
+                verified: true,
+                image: "👤",
+                badge: "Certified Producer",
+                rating,
+              };
+            })
+          );
           setProducers(formatted);
         }
       })
@@ -61,7 +79,9 @@ const FeaturedProducers = () => {
       >
         <Heart
           className={`w-4 h-4 ${
-            favorites.has(producer.id) ? "text-red-500 fill-current" : "text-gray-500"
+            favorites.has(producer.id)
+              ? "text-red-500 fill-current"
+              : "text-gray-500"
           }`}
         />
       </button>
@@ -78,9 +98,12 @@ const FeaturedProducers = () => {
 
       {/* Content */}
       <div className="p-6">
-        <h3 className="font-semibold text-lg text-gray-900 group-hover:text-blue-600 transition-colors mb-2">
+        <h3 className="font-semibold text-lg text-gray-900 group-hover:text-blue-600 transition-colors mb-1">
           {producer.name}
         </h3>
+        <div className="text-sm text-yellow-600 font-medium mb-1">
+          ⭐ Rating: {producer.rating}
+        </div>
         <p className="text-sm text-gray-600 mb-4 leading-relaxed">
           {producer.description}
         </p>
@@ -107,7 +130,7 @@ const FeaturedProducers = () => {
             This Month
           </div>
           <h2 className="text-3xl font-semibold text-gray-800 mb-2">
-           Featured Local Producers
+            Featured Local Producers
           </h2>
           <p className="text-gray-600 max-w-xl mx-auto mb-4">
             Discover the passionate individuals behind our premium products.
@@ -138,9 +161,11 @@ const FeaturedProducers = () => {
 
         {/* View All Button */}
         <div className="text-center mt-12">
-          <button className="inline-flex font-medium text-sm py-3 px-7 rounded-md border border-gray-300 bg-white text-gray-800 hover:bg-gray-800 hover:text-white hover:border-transparent transition-colors duration-200">
-            View All Producers
-          </button>
+          <a href="http://localhost:3000/producers/our">
+            <button className="inline-flex font-medium text-sm py-3 px-7 rounded-md border border-gray-300 bg-white text-gray-800 hover:bg-gray-800 hover:text-white hover:border-transparent transition-colors duration-200">
+              View All Producers
+            </button>
+          </a>
         </div>
       </div>
     </section>

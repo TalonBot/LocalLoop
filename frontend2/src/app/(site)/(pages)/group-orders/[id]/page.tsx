@@ -1,19 +1,16 @@
 "use client";
-import { useParams } from "next/navigation";
 
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
+import { addItemToCart } from "@/redux/features/cart-slice";
 
 interface Product {
   product_id: string;
   unit_price: number;
   max_quantity: number;
-}
-
-interface CartItem {
-  product_id: string;
-  quantity: number;
-  unit_price: number;
-  group_order_id: string;
+  name: string;
+  image_url: string | null;
 }
 
 export default function GroupOrderDetailPage() {
@@ -21,12 +18,13 @@ export default function GroupOrderDetailPage() {
   const groupOrderId = params?.id as string;
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({});
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const dispatch = useDispatch();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -56,38 +54,42 @@ export default function GroupOrderDetailPage() {
   };
 
   const handleAddToCart = () => {
-    const cartItems: CartItem[] = [];
+    let addedAny = false;
 
     for (const product of products) {
       const selected = selectedItems[product.product_id];
       const quantity = quantities[product.product_id];
 
       if (selected && quantity > 0 && quantity <= product.max_quantity) {
-        cartItems.push({
-          product_id: product.product_id,
-          quantity,
-          unit_price: product.unit_price,
-          group_order_id: groupOrderId,
-        });
+        dispatch(
+          addItemToCart({
+            id: product.product_id,
+            title: product.name,
+            price: product.unit_price,
+            discountedPrice: product.unit_price,
+            quantity,
+            imgs: product.image_url
+              ? {
+                  thumbnails: [product.image_url],
+                  previews: [product.image_url],
+                }
+              : undefined,
+          })
+        );
+        addedAny = true;
       }
     }
 
-    if (cartItems.length === 0) {
-      alert("Please select at least one product with valid quantity.");
+    if (!addedAny) {
+      alert("Please select at least one product with a valid quantity.");
       return;
     }
 
-    // Store in localStorage
-    const existing = JSON.parse(localStorage.getItem("cart") || "[]");
-    const updated = [...existing, ...cartItems];
-    localStorage.setItem("cart", JSON.stringify(updated));
-
-    alert("Items added to cart!");
-    window.location.href = "/cart";
+    router.push("/cart");
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10">
+    <div className="max-w-3xl mx-auto px-4 py-10 mt-24">
       <h1 className="text-2xl font-bold mb-6">Join Group Order</h1>
 
       {loading ? (
@@ -100,25 +102,35 @@ export default function GroupOrderDetailPage() {
             {products.map((product) => (
               <div
                 key={product.product_id}
-                className="border p-4 rounded-md flex justify-between items-center"
+                className="border p-4 rounded-md flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
-                <div>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedItems[product.product_id] || false}
-                      onChange={() => toggleSelect(product.product_id)}
+                <div className="flex items-center gap-4">
+                  {product.image_url ? (
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-16 h-16 rounded object-cover"
                     />
-                    <span className="font-medium">
-                      Product {product.product_id}
-                    </span>
-                  </label>
-                  <p className="text-sm text-gray-600">
-                    Price: €{product.unit_price.toFixed(2)} — Max:{" "}
-                    {product.max_quantity}
-                  </p>
+                  ) : (
+                    <div className="w-16 h-16 flex items-center justify-center bg-gray-100 text-gray-500 text-sm rounded">
+                      No Image
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="font-semibold">{product.name}</h3>
+                    <p className="text-sm text-gray-600">
+                      Price: €{product.unit_price.toFixed(2)} — Max: {product.max_quantity}
+                    </p>
+                    <label className="flex items-center gap-2 mt-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems[product.product_id] || false}
+                        onChange={() => toggleSelect(product.product_id)}
+                      />
+                      Select
+                    </label>
+                  </div>
                 </div>
-
                 <input
                   type="number"
                   min={0}
