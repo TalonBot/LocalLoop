@@ -10,7 +10,7 @@ export default function GroupOrdersPage() {
   const icons = ["🌱", "🍞", "🍯", "🥕", "🧀", "🍇"];
 
   useEffect(() => {
-    fetch("http://localhost:5000/public/group-orders")
+    fetch(`${process.env.API_BASE}/public/group-orders`)
       .then((res) => res.json())
       .then((data) => {
         setGroupOrders(data.groupOrders);
@@ -24,7 +24,9 @@ export default function GroupOrdersPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10 mt-24">
-      <h1 className="text-3xl font-bold mb-8 text-gray-800">Available Group Orders</h1>
+      <h1 className="text-3xl font-bold mb-8 text-gray-800">
+        Available Group Orders
+      </h1>
 
       {loading ? (
         <p>Loading...</p>
@@ -56,7 +58,8 @@ export default function GroupOrdersPage() {
                   {order.description || "Untitled Group Order"}
                 </h2>
                 <p className="text-sm text-gray-500">
-                  Created: {new Date(order.created_at).toLocaleDateString()}
+                  Created:{" "}
+                  {new Date(order.created_at).toLocaleDateString("en-GB")}
                 </p>
 
                 <div className="flex items-center gap-2 mt-3">

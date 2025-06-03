@@ -26,7 +26,22 @@ router.get("/group-orders/:id/products", async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("group_order_products")
-      .select("product_id, unit_price, max_quantity")
+      .select(
+        `
+        unit_price,
+        max_quantity,
+        product:products (
+          id,
+          name,
+          description,
+          category,
+          unit,
+          product_images (
+            image_url
+          )
+        )
+      `
+      )
       .eq("group_order_id", id);
 
     if (error) throw error;
@@ -34,7 +49,9 @@ router.get("/group-orders/:id/products", async (req, res) => {
     res.status(200).json({ products: data });
   } catch (err) {
     console.error("Error loading group order products:", err);
-    res.status(500).json({ message: "Failed to fetch products for this group order" });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch products for this group order" });
   }
 });
 

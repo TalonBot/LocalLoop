@@ -8,7 +8,7 @@ export default function AuthHydrator() {
 
   useEffect(() => {
     // Adjust the endpoint to your backend session check
-    fetch("http://localhost:5000/auth/verify-session", {
+    fetch(`${process.env.API_BASE}/auth/verify-session`, {
       credentials: "include",
     })
       .then((res) => (res.ok ? res.json() : null))

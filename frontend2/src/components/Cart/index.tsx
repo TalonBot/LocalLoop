@@ -8,12 +8,13 @@ import Breadcrumb from "../Common/Breadcrumb";
 import Link from "next/link";
 import { useDispatch } from "react-redux";
 import { removeAllItemsFromCart } from "@/redux/features/cart-slice";
+import { selectIsGroupOrder } from "@/redux/features/cart-slice";
 
 const Cart = () => {
   const cartItems = useAppSelector((state) => state.cartReducer.items);
+  const isGroupOrder = useAppSelector(selectIsGroupOrder);
   const dispatch = useDispatch();
 
-  
   return (
     <>
       {/* <!-- ===== Breadcrumb Section Start ===== --> */}
@@ -25,7 +26,9 @@ const Cart = () => {
         <section className="overflow-hidden py-20 bg-gray-2">
           <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0">
             <div className="flex flex-wrap items-center justify-between gap-5 mb-7.5">
-              <h2 className="font-medium text-dark text-2xl">Your Cart</h2>
+              <h2 className="font-medium text-dark text-2xl">
+                {isGroupOrder ? "Group Order Cart" : "Your Cart"}
+              </h2>
               <button
                 className="text-blue"
                 onClick={() => dispatch(removeAllItemsFromCart())}
@@ -70,7 +73,7 @@ const Cart = () => {
             </div>
 
             <div className="flex flex-col lg:flex-row gap-7.5 xl:gap-11 mt-9">
-              <Discount />
+              {!isGroupOrder && <Discount />}
               <OrderSummary />
             </div>
           </div>

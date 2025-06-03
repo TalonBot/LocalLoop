@@ -11,7 +11,7 @@ const ConfirmPickupForm = ({ orderId, consumerId }) => {
     setMessage("");
 
     try {
-      const res = await fetch("http://localhost:5000/provider/pickup", {
+      const res = await fetch(`${process.env.API_BASE}/provider/pickup`, {
         credentials: "include",
 
         method: "POST",

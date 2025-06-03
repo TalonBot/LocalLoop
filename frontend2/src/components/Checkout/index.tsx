@@ -7,11 +7,15 @@ import PaymentMethod from "./PaymentMethod";
 import Coupon from "./Coupon";
 import Billing from "./Billing";
 import { selectCartItems, selectTotalPrice } from "@/redux/features/cart-slice";
-import { useAppSelector } from "@/redux/store";
+import { RootState, useAppSelector } from "@/redux/store";
 
 const Checkout = () => {
   const cartItems = useSelector(selectCartItems);
   const cartTotal = useSelector(selectTotalPrice);
+  const groupOrderId = useSelector(
+    (state: RootState) => state.cartReducer.groupOrderId
+  );
+  const isGroupOrder = !!groupOrderId; // This will be true if groupOrderId exists
 
   const user = useAppSelector((state) => state.authReducer?.user);
 
@@ -43,7 +47,7 @@ const Checkout = () => {
     }
     try {
       const res = await fetch(
-        `http://localhost:5000/users/validate/${couponCode}`
+        `${process.env.API_BASE}/users/validate/${couponCode}`
       );
       if (!res.ok) throw new Error("Invalid coupon");
       const data = await res.json();
@@ -75,14 +79,13 @@ const Checkout = () => {
     e.preventDefault();
     setCheckoutError("");
 
-    // Ensure user is logged in before submission
     if (!user) {
       setCheckoutError("You must be logged in to checkout.");
       return;
     }
 
-    // If shipping is delivery, validate required fields
     if (shippingMethod === "delivery") {
+      // Note: You have a typo here ("delivery" vs "delivery")
       if (!billingForm.address || !billingForm.city || !billingForm.country) {
         setCheckoutError("Please fill out all delivery address fields.");
         return;
@@ -90,44 +93,44 @@ const Checkout = () => {
     }
 
     try {
-      const response = await fetch(
-        "http://localhost:5000/create-checkout-session",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include", // if you need cookies/session
-          body: JSON.stringify({
-            items: cartItems.map((item) => ({
-              product_id: item.id,
-              quantity: item.quantity,
-              product_name: item.title,
-            })),
-            pickup_or_delivery: shippingMethod,
-            coupon_code: couponCode || null,
-            notes: notes,
+      const endpoint = isGroupOrder
+        ? `${process.env.API_BASE}/consumer/join-group-order`
+        : `${process.env.API_BASE}/create-checkout-session`;
 
-            delivery_details:
-              shippingMethod === "delivery"
-                ? {
-                    address: billingForm.address,
-                    city: billingForm.city,
-                    country: billingForm.country,
-                    notes: notes,
-                  }
-                : null,
-          }),
-        }
-      );
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          group_order_id: isGroupOrder ? groupOrderId : undefined,
+          items: cartItems.map((item) => ({
+            product_id: item.id,
+            quantity: item.quantity,
+            product_name: item.title,
+          })),
+          pickup_or_delivery: shippingMethod,
+          coupon_code: couponCode || null,
+          notes,
+          delivery_details:
+            shippingMethod === "delivery"
+              ? {
+                  address: billingForm.address,
+                  city: billingForm.city,
+                  country: billingForm.country,
+                  notes,
+                }
+              : null,
+        }),
+      });
 
       const data = await response.json();
+
       if (response.ok && data.url) {
-        window.location.href = data.url; // Redirect to Stripe Checkout
+        window.location.href = data.url;
       } else {
         setCheckoutError(data.message || "Failed to start payment session.");
       }
-    } catch (err) {
+    } catch {
       setCheckoutError("Failed to start payment session.");
     }
   };
@@ -292,6 +295,7 @@ const Checkout = () => {
                   coupon={coupon}
                   couponError={couponError}
                   isApplying={isApplying}
+                  disabled={isGroupOrder}
                 />
 
                 <button

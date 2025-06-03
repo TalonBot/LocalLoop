@@ -21,7 +21,7 @@ export default function VerifyEmailPage() {
 
     const verifyEmail = async () => {
       try {
-        await axios.post("http://localhost:5000/auth/verify-email", {
+        await axios.post(`${process.env.API_BASE}/auth/verify-email`, {
           token,
           email,
         });

@@ -25,7 +25,7 @@ const Signin = () => {
     dispatch(loginStart());
 
     try {
-      const response = await fetch("http://localhost:5000/auth/login", {
+      const response = await fetch(`${process.env.API_BASE}/auth/login`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -57,7 +57,7 @@ const Signin = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:5000/auth/google";
+    window.location.href = `${process.env.API_BASE}/auth/google`;
   };
 
   return (

@@ -7,6 +7,7 @@ const Coupon = ({
   coupon,
   couponError,
   isApplying,
+  disabled = false, // add disabled prop with default false
 }) => {
   return (
     <div className="bg-white shadow-1 rounded-[10px] mt-7.5">
@@ -24,13 +25,13 @@ const Coupon = ({
             className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-2.5 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
             value={couponCode}
             onChange={(e) => setCouponCode(e.target.value)}
-            disabled={isApplying}
+            disabled={isApplying || disabled} // disable input if applying or disabled
           />
 
           <button
             type="button"
-            className="inline-flex font-medium text-white bg-blue py-3 px-6 rounded-md ease-out duration-200 hover:bg-blue-dark"
-            disabled={isApplying}
+            className="inline-flex font-medium text-white bg-blue py-3 px-6 rounded-md ease-out duration-200 hover:bg-blue-dark disabled:opacity-50"
+            disabled={isApplying || disabled} // disable button if applying or disabled
             onClick={handleApplyCoupon}
           >
             {isApplying ? "Applying..." : "Apply"}
@@ -42,7 +43,7 @@ const Coupon = ({
         {coupon && (
           <div className="text-green-600 text-sm mt-2">
             Coupon &quot;{coupon.code}&quot; applied: -{coupon.discount_percent}
-            %!
+            % !
           </div>
         )}
       </div>

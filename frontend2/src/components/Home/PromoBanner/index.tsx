@@ -30,59 +30,67 @@ const LocalProducerMap = () => {
   const [selectedProducer, setSelectedProducer] = useState(null);
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
 
-useEffect(() => {
-  let hasSentLocation = false;
+  useEffect(() => {
+    let hasSentLocation = false;
 
-  if (navigator.geolocation && !hasSentLocation) {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
+    if (navigator.geolocation && !hasSentLocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
 
-        setUserLocation({ lat, lng });
+          setUserLocation({ lat, lng });
 
-        // Send location to backend
-        fetch("http://localhost:5000/location", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({ latitude: lat, longitude: lng }),
-        })
-          .then((res) => res.json())
-          .then((data) => console.log("Location updated:", data))
-          .catch((err) => console.error("Error updating location:", err));
+          // Send location to backend
+          fetch(`${process.env.API_BASE}/location`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({ latitude: lat, longitude: lng }),
+          })
+            .then((res) => res.json())
+            .then((data) => console.log("Location updated:", data))
+            .catch((err) => console.error("Error updating location:", err));
 
-        hasSentLocation = true;
-      },
-      (error) => {
-        console.error("Error getting location:", error.message, "Code:", error.code);
-      }
-    );
-  } else {
-    console.error("Geolocation not supported by this browser.");
-  }
-}, []);
+          hasSentLocation = true;
+        },
+        (error) => {
+          console.error(
+            "Error getting location:",
+            error.message,
+            "Code:",
+            error.code
+          );
+        }
+      );
+    } else {
+      console.error("Geolocation not supported by this browser.");
+    }
+  }, []);
 
-useEffect(() => {
-  if (userLocation) {
-    fetch(`http://localhost:5000/location/nearby-producers?lat=${userLocation.lat}&lng=${userLocation.lng}`)
-      .then(res => res.json())
-        .then(data => {
+  useEffect(() => {
+    if (userLocation) {
+      fetch(
+        `${process.env.API_BASE}/location/nearby-producers?lat=${userLocation.lat}&lng=${userLocation.lng}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
           const withPositions = assignMockPositions(data);
           setProducers(withPositions);
         })
-      .catch(err => console.error("Error fetching nearby producers:", err));
-  }
-}, [userLocation]);
-
+        .catch((err) => console.error("Error fetching nearby producers:", err));
+    }
+  }, [userLocation]);
 
   // Mock data for local producers
   const [producers, setProducers] = useState<any[]>([]); // Adjust type if needed
-
 
   const categories = [
     { id: "all", label: "All Producers", color: "bg-gray-600" },
@@ -94,44 +102,50 @@ useEffect(() => {
   ];
 
   const filteredProducers = producers.filter((producer) =>
-  producer.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
-);
-
-// const filteredProducers = producers.filter((producer) => {
-//   const matchesCategory =
-//     activeCategory === "all" || producer.category === activeCategory; // category might be undefined, we'll fix this later
-//   const matchesSearch =
-//     producer.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
-//   return matchesCategory && matchesSearch;
-// });
-
-const renderStars = (rating) => {
-  const totalStars = 5;
-  const fullStars = Math.floor(rating);
-  const hasPartialStar = rating % 1 !== 0;
-  const partialStarPercentage = (rating % 1) * 100;
-
-  return (
-    <div className="flex items-center gap-0.5">
-      {[...Array(fullStars)].map((_, index) => (
-        <Star key={`full-${index}`} className="w-4 h-4 text-yellow-400 fill-current" />
-      ))}
-      {hasPartialStar && (
-        <div className="relative w-4 h-4">
-          <Star className="w-4 h-4 text-gray-300" />
-          <Star
-            className="w-4 h-4 text-yellow-400 fill-current absolute top-0 left-0"
-            style={{ clipPath: `inset(0 ${100 - partialStarPercentage}% 0 0)` }}
-          />
-        </div>
-      )}
-      {[...Array(totalStars - fullStars - (hasPartialStar ? 1 : 0))].map((_, index) => (
-        <Star key={`empty-${index}`} className="w-4 h-4 text-gray-300" />
-      ))}
-    </div>
+    producer.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-};
 
+  // const filteredProducers = producers.filter((producer) => {
+  //   const matchesCategory =
+  //     activeCategory === "all" || producer.category === activeCategory; // category might be undefined, we'll fix this later
+  //   const matchesSearch =
+  //     producer.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
+  //   return matchesCategory && matchesSearch;
+  // });
+
+  const renderStars = (rating) => {
+    const totalStars = 5;
+    const fullStars = Math.floor(rating);
+    const hasPartialStar = rating % 1 !== 0;
+    const partialStarPercentage = (rating % 1) * 100;
+
+    return (
+      <div className="flex items-center gap-0.5">
+        {[...Array(fullStars)].map((_, index) => (
+          <Star
+            key={`full-${index}`}
+            className="w-4 h-4 text-yellow-400 fill-current"
+          />
+        ))}
+        {hasPartialStar && (
+          <div className="relative w-4 h-4">
+            <Star className="w-4 h-4 text-gray-300" />
+            <Star
+              className="w-4 h-4 text-yellow-400 fill-current absolute top-0 left-0"
+              style={{
+                clipPath: `inset(0 ${100 - partialStarPercentage}% 0 0)`,
+              }}
+            />
+          </div>
+        )}
+        {[...Array(totalStars - fullStars - (hasPartialStar ? 1 : 0))].map(
+          (_, index) => (
+            <Star key={`empty-${index}`} className="w-4 h-4 text-gray-300" />
+          )
+        )}
+      </div>
+    );
+  };
 
   return (
     <section className="overflow-hidden py-20 bg-gradient-to-br from-blue-50 to-green-50">
@@ -288,14 +302,14 @@ const renderStars = (rating) => {
                     </h3>
                     <p className="text-gray-600">{selectedProducer.type}</p>
                   </div>
-                  
+
                   <div className="flex items-center gap-1">
                     {renderStars(selectedProducer.rating)}
                     <span className="text-sm font-medium ml-1">
                       {selectedProducer.rating || "No ratings yet"}
                     </span>
                   </div>
-                  </div>
+                </div>
 
                 <p className="text-gray-700 mb-4">
                   {selectedProducer.description}
@@ -346,12 +360,12 @@ const renderStars = (rating) => {
 
                 <div className="flex gap-3">
                   <a
-                      href={`https://www.google.com/maps/dir/?api=1&origin=${userLocation?.lat},${userLocation?.lng}&destination=${selectedProducer.latitude},${selectedProducer.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
-                    >
-                      Get Directions
+                    href={`https://www.google.com/maps/dir/?api=1&origin=${userLocation?.lat},${userLocation?.lng}&destination=${selectedProducer.latitude},${selectedProducer.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                  >
+                    Get Directions
                   </a>
                 </div>
               </div>

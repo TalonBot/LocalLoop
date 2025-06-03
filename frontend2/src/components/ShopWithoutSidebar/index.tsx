@@ -27,7 +27,7 @@ const ShopWithoutSidebar = () => {
       limit: limit.toString(),
       sort,
     });
-    fetch(`http://localhost:5000/users?${params.toString()}`)
+    fetch(`${process.env.API_BASE}/users?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
         setProducts(data.products);

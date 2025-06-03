@@ -16,8 +16,6 @@ import {
   Download,
 } from "lucide-react";
 
-const API_BASE_URL = process.env.API_BASE || "http://localhost:5000";
-
 const AdminDashboard = () => {
   const [adminNotes, setAdminNotes] = useState({});
   const [showRejectPopup, setShowRejectPopup] = React.useState(false);
@@ -54,9 +52,12 @@ const AdminDashboard = () => {
     setError((prev) => ({ ...prev, applications: null }));
 
     try {
-      const response = await fetch(`${API_BASE_URL}/admin/applications`, {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${process.env.API_BASE}/admin/applications`,
+        {
+          credentials: "include",
+        }
+      );
       if (!response.ok) throw new Error("Failed to fetch applications");
       const data = await response.json();
       setApplications(data);
@@ -72,7 +73,7 @@ const AdminDashboard = () => {
     setError((prev) => ({ ...prev, providers: null }));
 
     try {
-      const response = await fetch(`${API_BASE_URL}/admin/providers`, {
+      const response = await fetch(`${process.env.API_BASE}/admin/providers`, {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
@@ -91,7 +92,7 @@ const AdminDashboard = () => {
   const handleReview = async (id, status, adminNote) => {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/admin/applications/${id}/review`,
+        `${process.env.API_BASE}/admin/applications/${id}/review`,
         {
           credentials: "include",
           method: "PATCH",
@@ -141,7 +142,7 @@ const AdminDashboard = () => {
     try {
       // 1) Fetch invoice JSON data
       const dataResponse = await fetch(
-        `${API_BASE_URL}/admin/profits/${selectedProvider}?month=${selectedMonth}&year=${selectedYear}`,
+        `${process.env.API_BASE}/admin/profits/${selectedProvider}?month=${selectedMonth}&year=${selectedYear}`,
         {
           method: "GET",
           credentials: "include",
@@ -153,14 +154,17 @@ const AdminDashboard = () => {
       const invoiceData = await dataResponse.json();
 
       // 2) Send JSON data to PDF generator endpoint
-      const pdfResponse = await fetch(`${API_BASE_URL}/admin/generate-pdf`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(invoiceData),
-      });
+      const pdfResponse = await fetch(
+        `${process.env.API_BASE}/admin/generate-pdf`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(invoiceData),
+        }
+      );
 
       if (!pdfResponse.ok) throw new Error("Failed to generate PDF");
 

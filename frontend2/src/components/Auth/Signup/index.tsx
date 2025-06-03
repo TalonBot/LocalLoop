@@ -32,7 +32,7 @@ const Signup = () => {
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/auth/register", {
+      const res = await fetch(`${process.env.API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -55,7 +55,7 @@ const Signup = () => {
     }
   };
 
-  const googleOAuthUrl = "http://localhost:5000/auth/google";
+  const googleOAuthUrl = `${process.env.API_BASE}/auth/google`;
 
   return (
     <>

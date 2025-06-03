@@ -38,7 +38,7 @@ const ProducerDetails: React.FC = () => {
 
   useEffect(() => {
     if (!id) return;
-    fetch(`http://localhost:5000/users/producers/${id}`)
+    fetch(`${process.env.API_BASE}/users/producers/${id}`)
       .then((res) => res.json())
       .then((data) => {
         setProducer({

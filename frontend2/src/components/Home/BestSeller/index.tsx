@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { Eye, Heart, Award } from "lucide-react";
+import Link from "next/link";
 
 const FeaturedProducers = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -9,7 +10,7 @@ const FeaturedProducers = () => {
 
   // Fetch producers and their ratings from API on mount
   useEffect(() => {
-    fetch("http://localhost:5000/users/producers/page?page=1&limit=10")
+    fetch(`${process.env.API_BASE}/users/producers/page?page=1&limit=10`)
       .then((res) => res.json())
       .then(async (data) => {
         if (data && Array.isArray(data.producers)) {
@@ -18,11 +19,14 @@ const FeaturedProducers = () => {
               let rating = "N/A";
               try {
                 const res = await fetch(
-                  `http://localhost:5000/users/producer/${p.id}/average-rating`
+                  `${process.env.API_BASE}/users/producer/${p.id}/average-rating`
                 );
                 const ratingData = await res.json();
                 // We expect the endpoint to return { average_rating: number, count: number }
-                if (ratingData && typeof ratingData.average_rating === "number") {
+                if (
+                  ratingData &&
+                  typeof ratingData.average_rating === "number"
+                ) {
                   rating = ratingData.average_rating.toFixed(1);
                 }
               } catch (error) {
@@ -161,11 +165,11 @@ const FeaturedProducers = () => {
 
         {/* View All Button */}
         <div className="text-center mt-12">
-          <a href="http://localhost:3000/producers/our">
+          <Link href="/producers/our">
             <button className="inline-flex font-medium text-sm py-3 px-7 rounded-md border border-gray-300 bg-white text-gray-800 hover:bg-gray-800 hover:text-white hover:border-transparent transition-colors duration-200">
               View All Producers
             </button>
-          </a>
+          </Link>
         </div>
       </div>
     </section>

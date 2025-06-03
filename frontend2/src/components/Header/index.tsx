@@ -42,7 +42,7 @@ const Header = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch("http://localhost:5000/auth/logout", {
+      await fetch(`${process.env.API_BASE}/auth/logout`, {
         method: "POST",
         credentials: "include",
       });

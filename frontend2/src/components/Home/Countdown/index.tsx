@@ -98,7 +98,7 @@ const ProduceCountdown = () => {
               </Link>
 
               <Link
-                href="/producers"
+                href="/producers/our"
                 className="inline-flex font-medium text-sm text-emerald-600 bg-white py-3 px-6 rounded-lg ease-out duration-200 hover:bg-gray-50 border border-emerald-200"
               >
                 Browse Farmers

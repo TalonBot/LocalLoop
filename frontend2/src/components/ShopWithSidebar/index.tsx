@@ -29,7 +29,7 @@ const ShopWithSidebar = () => {
   const [priceRange, setPriceRange] = useState({ min: 0, max: 100 });
 
   useEffect(() => {
-    fetch("http://localhost:5000/users/price-range")
+    fetch(`${process.env.API_BASE}/users/price-range`)
       .then((res) => res.json())
       .then((data) => {
         setPriceRange(data);
@@ -37,7 +37,7 @@ const ShopWithSidebar = () => {
       });
   }, []);
   useEffect(() => {
-    fetch("http://localhost:5000/users/category/count") // Your endpoint for categories with counts
+    fetch(`${process.env.API_BASE}/users/category/count`) // Your endpoint for categories with counts
       .then((res) => res.json())
       .then((data) => setCategories(data));
   }, []);
@@ -112,11 +112,11 @@ const ShopWithSidebar = () => {
       });
 
       if (selectedCategory) {
-        url = `http://localhost:5000/users/category/${encodeURIComponent(
+        url = `${process.env.API_BASE}/users/category/${encodeURIComponent(
           selectedCategory
         )}?${params.toString()}`;
       } else {
-        url = `http://localhost:5000/users?${params.toString()}`;
+        url = `${process.env.API_BASE}/users?${params.toString()}`;
       }
 
       fetch(url)

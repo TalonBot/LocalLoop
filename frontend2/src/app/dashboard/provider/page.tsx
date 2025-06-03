@@ -177,7 +177,7 @@ const ProviderDashboard = () => {
     const fetchRating = async () => {
       try {
         const res = await fetch(
-          `${API_BASE}/users/producer/${userId}/average-rating`
+          `${process.env.API_BASE}/users/producer/${userId}/average-rating`
         );
         const data = await res.json();
         setAverageRating(data.average_rating);
@@ -236,9 +236,6 @@ const ProviderDashboard = () => {
     { value: "ml", label: "Milliliter (mL)" },
   ];
 
-  // API Base URL - adjust this to match your backend
-  const API_BASE = "http://localhost:5000";
-
   // Utility function for API calls
   interface ApiOptions extends RequestInit {
     headers?: HeadersInit;
@@ -246,7 +243,7 @@ const ProviderDashboard = () => {
 
   const apiCall = async (endpoint: string, options: ApiOptions = {}) => {
     try {
-      const response = await fetch(`${API_BASE}${endpoint}`, {
+      const response = await fetch(`${process.env.API_BASE}${endpoint}`, {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
@@ -379,13 +376,16 @@ const ProviderDashboard = () => {
 
         let response;
         if (product) {
-          response = await fetch(`${API_BASE}/product/${product.id}`, {
-            method: "PUT",
-            credentials: "include",
-            body: formDataToSend,
-          });
+          response = await fetch(
+            `${process.env.API_BASE}/product/${product.id}`,
+            {
+              method: "PUT",
+              credentials: "include",
+              body: formDataToSend,
+            }
+          );
         } else {
-          response = await fetch(`${API_BASE}/product/new`, {
+          response = await fetch(`${process.env.API_BASE}/product/new`, {
             method: "POST",
             credentials: "include",
             body: formDataToSend,
@@ -634,7 +634,7 @@ const ProviderDashboard = () => {
     isGroupOrder: boolean = false
   ) => {
     try {
-      const endpoint = `http://localhost:5000/provider/orders/${orderId}/finish?isGroupOrder=${isGroupOrder}`;
+      const endpoint = `${process.env.API_BASE}/provider/orders/${orderId}/finish?isGroupOrder=${isGroupOrder}`;
 
       const response = await fetch(endpoint, {
         credentials: "include",
@@ -1415,9 +1415,12 @@ const ProviderDashboard = () => {
     useEffect(() => {
       const loadInitialData = async () => {
         try {
-          const profileRes = await fetch(`${API_BASE}/provider/me`, {
-            credentials: "include",
-          });
+          const profileRes = await fetch(
+            `${process.env.API_BASE}/provider/me`,
+            {
+              credentials: "include",
+            }
+          );
           const profileData = await profileRes.json();
           setProfile(profileData);
 
@@ -1455,7 +1458,7 @@ const ProviderDashboard = () => {
           formData.append("profile_image", profileImage);
         }
 
-        await fetch(`${API_BASE}/provider/me`, {
+        await fetch(`${process.env.API_BASE}/provider/me`, {
           method: "PUT",
           credentials: "include",
           body: formData,

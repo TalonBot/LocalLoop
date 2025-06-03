@@ -1,9 +1,12 @@
 // services/auth.ts
 export const checkAuth = async () => {
   try {
-    const response = await fetch("http://localhost:5000/auth/verify-session", {
-      credentials: "include",
-    });
+    const response = await fetch(
+      `${process.env.API_BASE}/auth/verify-session`,
+      {
+        credentials: "include",
+      }
+    );
 
     if (!response.ok) {
       throw new Error("Not authenticated");
