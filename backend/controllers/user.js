@@ -90,25 +90,29 @@ const getAllProducers = async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
 
-  // Fetch certifications for all producers in this page
+  // Fetch certifications and descriptions for all producers in this page
   const producerIds = producers.map((p) => p.id);
   const { data: stories, error: storiesError } = await supabase
     .from("producer_stories")
-    .select("user_id, certifications")
+    .select("user_id, certifications, description")
     .in("user_id", producerIds);
 
   if (storiesError)
     return res.status(500).json({ error: storiesError.message });
 
-  // Map certifications to each producer
-  const certMap = {};
+  // Map story data to each producer
+  const storyMap = {};
   stories.forEach((story) => {
-    certMap[story.user_id] = story.certifications || [];
+    storyMap[story.user_id] = {
+      certifications: story.certifications || [],
+      description: story.description || null,
+    };
   });
 
   const producersWithCerts = producers.map((producer) => ({
     ...producer,
-    certifications: certMap[producer.id] || [],
+    certifications: storyMap[producer.id]?.certifications || [],
+    description: storyMap[producer.id]?.description || null,
   }));
 
   res.json({

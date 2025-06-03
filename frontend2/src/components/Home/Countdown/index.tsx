@@ -1,5 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
+
 import Image from "next/image";
 
 const ProduceCountdown = () => {
@@ -88,18 +90,19 @@ const ProduceCountdown = () => {
 
             {/* Call to action buttons */}
             <div className="flex flex-wrap gap-4 mt-8">
-              <a
+              <Link
                 href="/group-orders"
                 className="inline-flex font-medium text-sm text-black bg-emerald-600 py-3 px-6 rounded-lg ease-out duration-200 hover:bg-emerald-700 shadow-lg"
               >
                 Pre-Order Now
-              </a>
-              <a
-                href="#"
+              </Link>
+
+              <Link
+                href="/producers"
                 className="inline-flex font-medium text-sm text-emerald-600 bg-white py-3 px-6 rounded-lg ease-out duration-200 hover:bg-gray-50 border border-emerald-200"
               >
                 Browse Farmers
-              </a>
+              </Link>
             </div>
           </div>
 

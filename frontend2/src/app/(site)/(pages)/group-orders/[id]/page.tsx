@@ -1,4 +1,5 @@
 "use client";
+import { useParams } from "next/navigation";
 
 import { useEffect, useState } from "react";
 
@@ -15,11 +16,14 @@ interface CartItem {
   group_order_id: string;
 }
 
-export default function GroupOrderDetailPage({ params }: { params: { id: string } }) {
-  const { id: groupOrderId } = params;
+export default function GroupOrderDetailPage() {
+  const params = useParams();
+  const groupOrderId = params?.id as string;
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({});
+  const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>(
+    {}
+  );
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -27,7 +31,9 @@ export default function GroupOrderDetailPage({ params }: { params: { id: string 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/public/group-orders/${groupOrderId}/products`);
+        const res = await fetch(
+          `http://localhost:5000/public/group-orders/${groupOrderId}/products`
+        );
         if (!res.ok) throw new Error("Failed to load products");
         const data = await res.json();
         setProducts(data.products || []);
@@ -71,13 +77,13 @@ export default function GroupOrderDetailPage({ params }: { params: { id: string 
       return;
     }
 
-    // Store in localStorage 
+    // Store in localStorage
     const existing = JSON.parse(localStorage.getItem("cart") || "[]");
     const updated = [...existing, ...cartItems];
     localStorage.setItem("cart", JSON.stringify(updated));
 
     alert("Items added to cart!");
-    window.location.href = "/cart"; 
+    window.location.href = "/cart";
   };
 
   return (
@@ -103,10 +109,13 @@ export default function GroupOrderDetailPage({ params }: { params: { id: string 
                       checked={selectedItems[product.product_id] || false}
                       onChange={() => toggleSelect(product.product_id)}
                     />
-                    <span className="font-medium">Product {product.product_id}</span>
+                    <span className="font-medium">
+                      Product {product.product_id}
+                    </span>
                   </label>
                   <p className="text-sm text-gray-600">
-                    Price: €{product.unit_price.toFixed(2)} — Max: {product.max_quantity}
+                    Price: €{product.unit_price.toFixed(2)} — Max:{" "}
+                    {product.max_quantity}
                   </p>
                 </div>
 
@@ -115,7 +124,12 @@ export default function GroupOrderDetailPage({ params }: { params: { id: string 
                   min={0}
                   max={product.max_quantity}
                   value={quantities[product.product_id] || ""}
-                  onChange={(e) => handleQuantityChange(product.product_id, parseInt(e.target.value))}
+                  onChange={(e) =>
+                    handleQuantityChange(
+                      product.product_id,
+                      parseInt(e.target.value)
+                    )
+                  }
                   className="w-24 px-2 py-1 border border-gray-300 rounded"
                   placeholder="Qty"
                 />
