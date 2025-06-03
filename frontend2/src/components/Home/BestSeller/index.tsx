@@ -138,9 +138,12 @@ const FeaturedProducers = () => {
 
         {/* View All Button */}
         <div className="text-center mt-12">
-          <button className="inline-flex font-medium text-sm py-3 px-7 rounded-md border border-gray-300 bg-white text-gray-800 hover:bg-gray-800 hover:text-white hover:border-transparent transition-colors duration-200">
-            View All Producers
-          </button>
+          
+         <a href="http://localhost:3000/producers/our">
+    <button className="inline-flex font-medium text-sm py-3 px-7 rounded-md border border-gray-300 bg-white text-gray-800 hover:bg-gray-800 hover:text-white hover:border-transparent transition-colors duration-200">
+      View All Producers
+    </button>
+  </a>
         </div>
       </div>
     </section>
