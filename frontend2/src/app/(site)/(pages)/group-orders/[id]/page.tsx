@@ -1,12 +1,14 @@
 "use client";
-import { useParams } from "next/navigation";
 
+import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface Product {
   product_id: string;
   unit_price: number;
   max_quantity: number;
+  name: string;
+  image_url: string | null;
 }
 
 interface CartItem {
@@ -21,9 +23,7 @@ export default function GroupOrderDetailPage() {
   const groupOrderId = params?.id as string;
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({});
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -77,7 +77,6 @@ export default function GroupOrderDetailPage() {
       return;
     }
 
-    // Store in localStorage
     const existing = JSON.parse(localStorage.getItem("cart") || "[]");
     const updated = [...existing, ...cartItems];
     localStorage.setItem("cart", JSON.stringify(updated));
@@ -87,7 +86,7 @@ export default function GroupOrderDetailPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10">
+    <div className="max-w-3xl mx-auto px-4 py-10 mt-24">
       <h1 className="text-2xl font-bold mb-6">Join Group Order</h1>
 
       {loading ? (
@@ -100,25 +99,31 @@ export default function GroupOrderDetailPage() {
             {products.map((product) => (
               <div
                 key={product.product_id}
-                className="border p-4 rounded-md flex justify-between items-center"
+                className="border p-4 rounded-md flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
-                <div>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedItems[product.product_id] || false}
-                      onChange={() => toggleSelect(product.product_id)}
+                <div className="flex items-center gap-4">
+                  {product.image_url && (
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-16 h-16 rounded object-cover"
                     />
-                    <span className="font-medium">
-                      Product {product.product_id}
-                    </span>
-                  </label>
-                  <p className="text-sm text-gray-600">
-                    Price: €{product.unit_price.toFixed(2)} — Max:{" "}
-                    {product.max_quantity}
-                  </p>
+                  )}
+                  <div>
+                    <h3 className="font-semibold">{product.name}</h3>
+                    <p className="text-sm text-gray-600">
+                      Price: €{product.unit_price.toFixed(2)} — Max: {product.max_quantity}
+                    </p>
+                    <label className="flex items-center gap-2 mt-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems[product.product_id] || false}
+                        onChange={() => toggleSelect(product.product_id)}
+                      />
+                      Select
+                    </label>
+                  </div>
                 </div>
-
                 <input
                   type="number"
                   min={0}
