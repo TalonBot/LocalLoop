@@ -27,7 +27,7 @@ const ShopWithoutSidebar = () => {
       limit: limit.toString(),
       sort,
     });
-    fetch(`${process.env.API_BASE}/users?${params.toString()}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE}/users?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
         setProducts(data.products);

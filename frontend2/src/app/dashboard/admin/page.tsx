@@ -53,7 +53,7 @@ const AdminDashboard = () => {
 
     try {
       const response = await fetch(
-        `${process.env.API_BASE}/admin/applications`,
+        `${process.env.NEXT_PUBLIC_API_BASE}/admin/applications`,
         {
           credentials: "include",
         }
@@ -73,12 +73,15 @@ const AdminDashboard = () => {
     setError((prev) => ({ ...prev, providers: null }));
 
     try {
-      const response = await fetch(`${process.env.API_BASE}/admin/providers`, {
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE}/admin/providers`,
+        {
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
       if (!response.ok) throw new Error("Failed to fetch providers");
       const data = await response.json();
       setApprovedProviders(data);
@@ -92,7 +95,7 @@ const AdminDashboard = () => {
   const handleReview = async (id, status, adminNote) => {
     try {
       const response = await fetch(
-        `${process.env.API_BASE}/admin/applications/${id}/review`,
+        `${process.env.NEXT_PUBLIC_API_BASE}/admin/applications/${id}/review`,
         {
           credentials: "include",
           method: "PATCH",
@@ -142,7 +145,7 @@ const AdminDashboard = () => {
     try {
       // 1) Fetch invoice JSON data
       const dataResponse = await fetch(
-        `${process.env.API_BASE}/admin/profits/${selectedProvider}?month=${selectedMonth}&year=${selectedYear}`,
+        `${process.env.NEXT_PUBLIC_API_BASE}/admin/profits/${selectedProvider}?month=${selectedMonth}&year=${selectedYear}`,
         {
           method: "GET",
           credentials: "include",
@@ -155,7 +158,7 @@ const AdminDashboard = () => {
 
       // 2) Send JSON data to PDF generator endpoint
       const pdfResponse = await fetch(
-        `${process.env.API_BASE}/admin/generate-pdf`,
+        `${process.env.NEXT_PUBLIC_API_BASE}/admin/generate-pdf`,
         {
           method: "POST",
           headers: {

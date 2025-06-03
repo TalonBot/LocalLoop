@@ -20,14 +20,17 @@ const Login = () => {
     dispatch(loginStart());
 
     try {
-      const response = await fetch(`${process.env.API_BASE}/auth/login`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE}/auth/login`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
       const data = await response.json();
 

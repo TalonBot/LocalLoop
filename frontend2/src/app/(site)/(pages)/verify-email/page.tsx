@@ -21,10 +21,13 @@ export default function VerifyEmailPage() {
 
     const verifyEmail = async () => {
       try {
-        await axios.post(`${process.env.API_BASE}/auth/verify-email`, {
-          token,
-          email,
-        });
+        await axios.post(
+          `${process.env.NEXT_PUBLIC_API_BASE}/auth/verify-email`,
+          {
+            token,
+            email,
+          }
+        );
         setStatus("success");
       } catch (error) {
         console.error(error);

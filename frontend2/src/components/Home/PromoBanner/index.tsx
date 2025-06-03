@@ -47,7 +47,7 @@ const LocalProducerMap = () => {
           setUserLocation({ lat, lng });
 
           // Send location to backend
-          fetch(`${process.env.API_BASE}/location`, {
+          fetch(`${process.env.NEXT_PUBLIC_API_BASE}/location`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -78,7 +78,7 @@ const LocalProducerMap = () => {
   useEffect(() => {
     if (userLocation) {
       fetch(
-        `${process.env.API_BASE}/location/nearby-producers?lat=${userLocation.lat}&lng=${userLocation.lng}`
+        `${process.env.NEXT_PUBLIC_API_BASE}/location/nearby-producers?lat=${userLocation.lat}&lng=${userLocation.lng}`
       )
         .then((res) => res.json())
         .then((data) => {

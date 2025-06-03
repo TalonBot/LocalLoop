@@ -32,15 +32,18 @@ const Signup = () => {
 
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.API_BASE}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          full_name: formData.full_name,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE}/auth/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            full_name: formData.full_name,
+            email: formData.email,
+            password: formData.password,
+          }),
+        }
+      );
       const data = await res.json();
 
       if (!res.ok) {
@@ -55,7 +58,7 @@ const Signup = () => {
     }
   };
 
-  const googleOAuthUrl = `${process.env.API_BASE}/auth/google`;
+  const googleOAuthUrl = `${process.env.NEXT_PUBLIC_API_BASE}/auth/google`;
 
   return (
     <>

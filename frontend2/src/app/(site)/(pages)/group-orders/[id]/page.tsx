@@ -40,7 +40,7 @@ export default function GroupOrderDetailPage() {
     const fetchProducts = async () => {
       try {
         const res = await fetch(
-          `${process.env.API_BASE}/public/group-orders/${groupOrderId}/products`
+          `${process.env.NEXT_PUBLIC_API_BASE}/public/group-orders/${groupOrderId}/products`
         );
         if (!res.ok) throw new Error("Failed to load products");
         const data = await res.json();

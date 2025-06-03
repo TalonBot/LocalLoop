@@ -2,7 +2,7 @@
 export const checkAuth = async () => {
   try {
     const response = await fetch(
-      `${process.env.API_BASE}/auth/verify-session`,
+      `${process.env.NEXT_PUBLIC_API_BASE}/auth/verify-session`,
       {
         credentials: "include",
       }
