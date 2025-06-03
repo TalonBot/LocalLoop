@@ -11,6 +11,7 @@ const {
   getPriceRange,
   validateCoupon,
   getAverageRatingForProducer,
+  getAverageRatingsForAllProducers,
 } = require("../controllers/user");
 
 router.get("/", getProducts);
@@ -34,4 +35,6 @@ router.get("/producers/:id", getProducerById);
 router.get("/recommendations/top", getRecommendations);
 
 router.get("/producer/:id/average-rating", getAverageRatingForProducer);
+
+router.get("/producers/ratings/all", getAverageRatingsForAllProducers);
 module.exports = router;

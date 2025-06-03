@@ -4,7 +4,8 @@ const { v4: uuidv4 } = require("uuid");
 
 const joinGroupOrder = async (req, res) => {
   const { consumerId } = req;
-  const { group_order_id, items, delivery_details, notes } = req.body;
+  const { group_order_id, items, delivery_details, notes, pickup_or_delivery } =
+    req.body;
 
   if (!group_order_id) {
     return res.status(400).json({ message: "Group order ID is required" });
@@ -60,6 +61,23 @@ const joinGroupOrder = async (req, res) => {
       });
     }
 
+    // Add delivery fee if delivery selected
+    if (pickup_or_delivery === "delivery") {
+      const deliveryFeeCents = 15 * 100;
+      totalAmount += deliveryFeeCents;
+
+      lineItems.push({
+        price_data: {
+          currency: "eur",
+          product_data: {
+            name: "Delivery Fee",
+          },
+          unit_amount: deliveryFeeCents,
+        },
+        quantity: 1,
+      });
+    }
+
     const metadata = {
       consumerId,
       group_order_id,
@@ -69,6 +87,7 @@ const joinGroupOrder = async (req, res) => {
         ? JSON.stringify(delivery_details)
         : "",
       total_price: (totalAmount / 100).toFixed(2),
+      pickup_or_delivery: pickup_or_delivery || "pickup",
     };
 
     const session = await stripe.checkout.sessions.create({

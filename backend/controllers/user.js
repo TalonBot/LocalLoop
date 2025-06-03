@@ -277,6 +277,48 @@ const getRecommendations = async (req, res) => {
   }
 };
 
+const getAverageRatingsForAllProducers = async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("ratings")
+      .select("user_rated_id, rating");
+
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Failed to fetch ratings" });
+    }
+
+    if (!data || data.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    const ratingsMap = {};
+
+    for (const row of data) {
+      const producerId = row.user_rated_id;
+      if (!ratingsMap[producerId]) {
+        ratingsMap[producerId] = [];
+      }
+      ratingsMap[producerId].push(row.rating);
+    }
+
+    const result = Object.entries(ratingsMap).map(([producerId, ratings]) => {
+      const total = ratings.reduce((sum, r) => sum + r, 0);
+      const average = total / ratings.length;
+      return {
+        producer_id: producerId,
+        average_rating: Number(average.toFixed(2)),
+        count: ratings.length,
+      };
+    });
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error("Error calculating ratings:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
   getProducts,
   getProductById,
@@ -288,4 +330,5 @@ module.exports = {
   validateCoupon,
   getAverageRatingForProducer,
   getRecommendations,
+  getAverageRatingsForAllProducers,
 };

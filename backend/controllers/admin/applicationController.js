@@ -201,90 +201,156 @@ const fetchApprovedProviders = async (req, res) => {
 };
 
 const getMonthlyProviderProfits = async (req, res) => {
-  const { providerId } = req.params;
-  const { month, year } = req.query;
-
-  if (!providerId || !month || !year) {
-    return res
-      .status(400)
-      .json({ error: "Missing providerId, month, or year" });
-  }
-
-  const startDate = new Date(`${year}-${month}-01`);
-  const endDate = new Date(startDate);
-  endDate.setMonth(endDate.getMonth() + 1); // next month
-
   try {
-    // Step 1: Get product IDs of this provider
-    const { data: products, error: productError } = await supabase
-      .from("products")
-      .select("id")
-      .eq("producer_id", providerId);
+    const providerId = req.params.providerId;
+    const { timeframe, month, year } = req.query;
+    const now = new Date();
 
-    if (productError) {
-      console.error("Error fetching products:", productError);
-      return res.status(500).json({ error: productError.message });
+    let startDate = null;
+    let endDate = null;
+
+    if (month && year) {
+      const paddedMonth = month.toString().padStart(2, "0");
+      const paddedYear = year.toString();
+      startDate = new Date(`${paddedYear}-${paddedMonth}-01T00:00:00Z`);
+      endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + 1);
+    } else {
+      switch (timeframe) {
+        case "day":
+          startDate = new Date(now);
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case "week":
+          startDate = new Date(now);
+          startDate.setDate(startDate.getDate() - 7);
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case "month":
+          startDate = new Date(now);
+          startDate.setMonth(startDate.getMonth() - 1);
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case "year":
+          startDate = new Date(now);
+          startDate.setFullYear(startDate.getFullYear() - 1);
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        default:
+          startDate = null;
+      }
     }
 
-    const productIds = products.map((p) => p.id);
-    if (productIds.length === 0) {
-      return res.status(200).json({
-        providerId,
-        month,
-        year,
-        totalProfit: 0,
-        ordersCount: 0,
-        message: "No products found for this provider",
+    // convert to ISO strings or null
+    const pStartDate = startDate ? startDate.toISOString() : null;
+    const pEndDate = endDate ? endDate.toISOString() : null;
+
+    // 1) Fetch regular orders
+    const { data: regularOrdersData, error: regularError } = await supabase.rpc(
+      "get_regular_provider_orders",
+      {
+        p_provider_id: providerId,
+        p_start_date: pStartDate,
+        p_end_date: pEndDate,
+      }
+    );
+
+    if (regularError) {
+      return res.status(500).json({
+        message: "Failed to fetch regular provider orders",
+        error: regularError,
       });
     }
 
-    // Step 2: Get order_items joined with orders where product_id is in list
-    const { data: orderItems, error: orderItemsError } = await supabase
-      .from("order_items")
-      .select(
-        `
-        quantity,
-        unit_price,
-        orders (
-          id,
-          created_at,
-          finished
-        )
-      `
-      )
-      .in("product_id", productIds);
-
-    if (orderItemsError) {
-      console.error("Error fetching order items:", orderItemsError);
-      return res.status(500).json({ error: orderItemsError.message });
-    }
-
-    // Step 3: Filter by date range and finished=true
-    const filteredItems = orderItems.filter((item) => {
-      const order = item.orders;
-      if (!order || !order.finished) return false;
-      const createdAt = new Date(order.created_at);
-      return createdAt >= startDate && createdAt < endDate;
+    // Group regular orders by order_id
+    const regularOrdersMap = {};
+    regularOrdersData.forEach((item) => {
+      const orderId = item.order_id;
+      if (!regularOrdersMap[orderId]) {
+        regularOrdersMap[orderId] = {
+          order_id: orderId,
+          created_at: item.created_at,
+          total_price: parseFloat(item.total_price) || 0,
+          products: [],
+        };
+      }
+      regularOrdersMap[orderId].products.push({
+        product_id: item.product_id,
+        name: item.product_name,
+        quantity: item.quantity,
+        unit_price: parseFloat(item.unit_price),
+        total_revenue: (item.quantity * item.unit_price).toFixed(2),
+      });
     });
+    const regularOrders = Object.values(regularOrdersMap);
 
-    const totalProfit = filteredItems.reduce(
-      (sum, item) => sum + item.quantity * parseFloat(item.unit_price),
+    const totalRegularRevenue = regularOrders.reduce(
+      (acc, order) => acc + order.total_price,
       0
     );
 
-    const uniqueOrderIds = new Set(filteredItems.map((i) => i.orders.id));
+    // 2) Fetch group order participants & items
+    const { data: groupItemsData, error: groupError } = await supabase.rpc(
+      "get_group_provider_participant_items",
+      {
+        p_provider_id: providerId,
+        p_start_date: pStartDate,
+        p_end_date: pEndDate,
+      }
+    );
+
+    if (groupError) {
+      return res.status(500).json({
+        message: "Failed to fetch group order participant items",
+        error: groupError,
+      });
+    }
+
+    // Calculate total revenue from group order items
+    const filteredGroupItems = groupItemsData.map((item) => ({
+      participant_id: item.participant_id,
+      group_order_id: item.group_order_id,
+      joined_at: item.joined_at,
+      pickup_or_delivery: item.pickup_or_delivery,
+      quantity: item.quantity,
+      unit_price: parseFloat(item.unit_price),
+      total_revenue: item.quantity * parseFloat(item.unit_price),
+      product_id: item.product_id,
+      product_name: item.product_name,
+      total_price: parseFloat(item.total_price),
+    }));
+
+    const totalGroupRevenue = filteredGroupItems.reduce(
+      (acc, item) => acc + item.total_revenue,
+      0
+    );
+
+    // Calculate delivery fees (assuming +15 per delivery participant)
+    const deliveryFeePerOrder = 15;
+    const deliveryCount = filteredGroupItems.filter(
+      (i) => i.pickup_or_delivery === "delivery"
+    ).length;
+    const totalDeliveryFees = deliveryCount * deliveryFeePerOrder;
+
+    const finalTotalRevenue =
+      totalRegularRevenue + totalGroupRevenue + totalDeliveryFees;
 
     return res.status(200).json({
-      providerId,
-      month,
-      year,
-      totalProfit,
-      ordersCount: uniqueOrderIds.size,
-      currency: "EUR",
+      revenue: {
+        regular_orders: parseFloat(totalRegularRevenue.toFixed(2)),
+        group_orders: parseFloat(totalGroupRevenue.toFixed(2)),
+        delivery_fees: totalDeliveryFees,
+        total: parseFloat(finalTotalRevenue.toFixed(2)),
+      },
+      timeframe: month && year ? `${month}-${year}` : timeframe || "all",
+      regular_orders: regularOrders,
+      group_order_items: filteredGroupItems,
+      orderCount: regularOrders.length + filteredGroupItems.length,
+      timestamp: new Date(),
     });
   } catch (err) {
-    console.error("Unexpected error:", err);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Revenue calculation error:", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 

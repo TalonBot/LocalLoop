@@ -26,6 +26,7 @@ router.post(
       const session = event.data.object;
       const sessionId = session.id;
 
+      // Check if session already processed
       const { data: existingSession, error: sessionFetchError } = await supabase
         .from("processed_stripe_sessions")
         .select("id")
@@ -42,9 +43,10 @@ router.post(
         return res.status(200).send("Already processed");
       }
 
+      // Mark session as processed - insert with conflict handling
       const { error: insertSessionError } = await supabase
         .from("processed_stripe_sessions")
-        .insert([{ id: sessionId }]);
+        .upsert([{ id: sessionId }], { ignoreDuplicates: true });
 
       if (insertSessionError) {
         console.error(
@@ -65,6 +67,10 @@ router.post(
 
         try {
           // Insert participant and get the inserted row to get its ID
+          const totalPrice = parseFloat(session.metadata.total_price || "0");
+          const pickupOrDelivery =
+            session.metadata.pickup_or_delivery || "pickup";
+
           const { data: participantData, error: participantError } =
             await supabase
               .from("group_orders_participants")
@@ -74,6 +80,8 @@ router.post(
                   group_order_id: groupOrderId,
                   joined_at: new Date(),
                   paid: true,
+                  total_price: totalPrice,
+                  pickup_or_delivery: pickupOrDelivery,
                 },
               ])
               .select()
@@ -216,34 +224,45 @@ router.post(
             };
 
             try {
-              const couponCode = `LLOOP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-              const discountPercent = Math.floor(Math.random() * (15 - 5 + 1)) + 5; // 5–15%
+              const couponCode = `LLOOP-${Math.random()
+                .toString(36)
+                .substring(2, 8)
+                .toUpperCase()}`;
+              const discountPercent =
+                Math.floor(Math.random() * (15 - 5 + 1)) + 5; // 5–15%
 
-              const { data: newCoupon, error: couponInsertError } = await supabase
-                .from("coupons")
-                .insert([
-                  {
-                    code: couponCode,
-                    discount_percent: discountPercent,
-                    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-                    usage_limit: 1,
-                  },
-                ])
-                .select()
-                .single();
+              const { data: newCoupon, error: couponInsertError } =
+                await supabase
+                  .from("coupons")
+                  .insert([
+                    {
+                      code: couponCode,
+                      discount_percent: discountPercent,
+                      expires_at: new Date(
+                        Date.now() + 30 * 24 * 60 * 60 * 1000
+                      ), // 30 days
+                      usage_limit: 1,
+                    },
+                  ])
+                  .select()
+                  .single();
 
               if (couponInsertError) {
                 console.error("Error creating coupon:", couponInsertError);
               } else {
                 dynamicData.coupon_code = couponCode;
                 dynamicData.discount_percent = discountPercent;
-                dynamicData.expires_at = new Date(newCoupon.expires_at).toLocaleDateString("en-GB", {
+                dynamicData.expires_at = new Date(
+                  newCoupon.expires_at
+                ).toLocaleDateString("en-GB", {
                   day: "2-digit",
                   month: "2-digit",
                   year: "numeric",
                 });
 
-                console.log(`✅ Coupon ${couponCode} generated for group order user ${userData.email}`);
+                console.log(
+                  `✅ Coupon ${couponCode} generated for group order user ${userData.email}`
+                );
               }
             } catch (err) {
               console.error("Error generating coupon for group order:", err);
