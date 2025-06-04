@@ -9,7 +9,7 @@ app.use("/webhook", require("./routes/webhook"));
 app.use(express.json());
 app.use(
   cors({
-    origin: "https://localloop.onrender.com",
+    origin: "https://local-loop-liard.vercel.app",
     credentials: true,
   })
 );
