@@ -705,6 +705,11 @@ const ProviderDashboard = () => {
       );
     }
 
+    const sortedOrders = [...orders].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
     return (
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Order History</h2>
@@ -748,7 +753,7 @@ const ProviderDashboard = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {orders.map((order, idx) => {
+                {sortedOrders.map((order, idx) => {
                   if (order.type === "individual") {
                     return (
                       <tr key={order.order_id}>
@@ -756,8 +761,18 @@ const ProviderDashboard = () => {
                           {order.order_id.slice(0, 8)}...
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(order.created_at).toLocaleDateString()}
+                          {(() => {
+                            const d = new Date(order.created_at);
+                            const day = String(d.getDate()).padStart(2, "0");
+                            const month = String(d.getMonth() + 1).padStart(
+                              2,
+                              "0"
+                            );
+                            const year = d.getFullYear();
+                            return `${day}/${month}/${year}`;
+                          })()}
                         </td>
+
                         <td className="px-6 py-4 text-sm text-gray-500">
                           <ul>
                             <li>
@@ -821,8 +836,18 @@ const ProviderDashboard = () => {
                           </small>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(order.created_at).toLocaleDateString()}
+                          {(() => {
+                            const d = new Date(order.created_at);
+                            const day = String(d.getDate()).padStart(2, "0");
+                            const month = String(d.getMonth() + 1).padStart(
+                              2,
+                              "0"
+                            );
+                            const year = d.getFullYear();
+                            return `${day}/${month}/${year}`;
+                          })()}
                         </td>
+
                         <td className="px-6 py-4 text-sm text-gray-500">
                           <ul>
                             <li>
