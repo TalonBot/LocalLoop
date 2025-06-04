@@ -13,7 +13,6 @@ import { useAppDispatch } from "@/redux/store";
 import { logout } from "@/redux/features/authSlice";
 
 const Header = () => {
-  const [searchQuery, setSearchQuery] = useState("");
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [stickyMenu, setStickyMenu] = useState(false);
   const { openCartModal } = useCartModalContext();
@@ -57,19 +56,6 @@ const Header = () => {
     return () => window.removeEventListener("scroll", handleStickyMenu);
   }, []);
 
-  const options = [
-    { label: "All Categories", value: "all" },
-    { label: "Honey", value: "honey" },
-    { label: "Vegetables", value: "vegetables" },
-    { label: "Fruits", value: "fruits" },
-    { label: "Dairy", value: "dairy" },
-    { label: "Bread", value: "bread" },
-    { label: "Meat", value: "meat" },
-    { label: "Beverages", value: "beverages" },
-    { label: "Crafts", value: "crafts" },
-    { label: "Other", value: "other" },
-  ];
-
   return (
     <header
       className={`fixed left-0 top-0 w-full z-9999 bg-white transition-all ease-in-out duration-300 ${
@@ -95,17 +81,28 @@ const Header = () => {
               />
             </Link>
 
-            <div className="max-w-[475px] w-full">
+            {/* Search bar removed for mobile */}
+            <div className="max-w-[475px] w-full hidden sm:block">
               <form>
                 <div className="flex items-center">
-                  <CustomSelect options={options} />
+                  <CustomSelect
+                    options={[
+                      { label: "All Categories", value: "all" },
+                      { label: "Honey", value: "honey" },
+                      { label: "Vegetables", value: "vegetables" },
+                      { label: "Fruits", value: "fruits" },
+                      { label: "Dairy", value: "dairy" },
+                      { label: "Bread", value: "bread" },
+                      { label: "Meat", value: "meat" },
+                      { label: "Beverages", value: "beverages" },
+                      { label: "Crafts", value: "crafts" },
+                      { label: "Other", value: "other" },
+                    ]}
+                  />
 
                   <div className="relative max-w-[333px] sm:min-w-[333px] w-full">
-                    {/* <!-- divider --> */}
                     <span className="absolute left-0 top-1/2 -translate-y-1/2 inline-block w-px h-5.5 bg-gray-4"></span>
                     <input
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      value={searchQuery}
                       type="search"
                       name="search"
                       id="search"
@@ -149,7 +146,6 @@ const Header = () => {
                 {/* Conditional rendering for auth */}
                 {!isAuthenticated ? (
                   <Link href="/signin" className="flex items-center gap-2.5">
-                    {/* ...Sign In SVG and text... */}
                     <svg
                       width="24"
                       height="24"
@@ -170,7 +166,7 @@ const Header = () => {
                         fill="#3C50E0"
                       />
                     </svg>
-                    <div>
+                    <div className="hidden sm:block">
                       <span className="block text-2xs text-dark-4 uppercase">
                         account
                       </span>
@@ -181,7 +177,6 @@ const Header = () => {
                   </Link>
                 ) : (
                   <div className="flex items-center gap-2.5">
-                    {/* ...User Icon and info... */}
                     <svg
                       width="24"
                       height="24"
@@ -199,7 +194,7 @@ const Header = () => {
                         fill="#3C50E0"
                       />
                     </svg>
-                    <div>
+                    <div className="hidden sm:block">
                       <span className="block text-2xs text-dark-4 uppercase">
                         {user?.role || "account"}
                       </span>
@@ -209,57 +204,88 @@ const Header = () => {
                     </div>
                   </div>
                 )}
+                {user?.role === "admin" && (
+                  <Link href="/dashboard/admin">
+                    <button className="bg-blue-600 text-white text-sm px-4 py-2 rounded hover:bg-blue-700 transition">
+                      Admin Dashboard
+                    </button>
+                  </Link>
+                )}
 
-                <button
-                  onClick={handleOpenCartModal}
-                  className="flex items-center gap-2.5"
-                >
-                  <span className="inline-block relative">
+                {isAuthenticated && user?.role === "provider" && (
+                  <Link
+                    href="/dashboard/provider"
+                    className="hidden sm:flex px-3 py-1 rounded bg-green-600 hover:bg-green-700 text-sm text-white items-center gap-2"
+                  >
                     <svg
-                      width="24"
-                      height="24"
+                      width="16"
+                      height="16"
                       viewBox="0 0 24 24"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
                     >
+                      <rect width="24" height="24" fill="none" />
                       <path
-                        d="M15.5433 9.5172C15.829 9.21725 15.8174 8.74252 15.5174 8.45686C15.2175 8.17119 14.7428 8.18277 14.4571 8.48272L12.1431 10.9125L11.5433 10.2827C11.2576 9.98277 10.7829 9.97119 10.483 10.2569C10.183 10.5425 10.1714 11.0173 10.4571 11.3172L11.6 12.5172C11.7415 12.6658 11.9378 12.75 12.1431 12.75C12.3483 12.75 12.5446 12.6658 12.6862 12.5172L15.5433 9.5172Z"
-                        fill="#3C50E0"
-                      />
-                      <path
-                        fillRule="evenodd"
-                        clipRule="evenodd"
-                        d="M1.29266 2.7512C1.43005 2.36044 1.8582 2.15503 2.24896 2.29242L2.55036 2.39838C3.16689 2.61511 3.69052 2.79919 4.10261 3.00139C4.54324 3.21759 4.92109 3.48393 5.20527 3.89979C5.48725 4.31243 5.60367 4.76515 5.6574 5.26153C5.66124 5.29706 5.6648 5.33321 5.66809 5.36996L17.1203 5.36996C17.9389 5.36995 18.7735 5.36993 19.4606 5.44674C19.8103 5.48584 20.1569 5.54814 20.4634 5.65583C20.7639 5.76141 21.0942 5.93432 21.3292 6.23974C21.711 6.73613 21.7777 7.31414 21.7416 7.90034C21.7071 8.45845 21.5686 9.15234 21.4039 9.97723L21.3935 10.0295L21.3925 10.0341L20.8836 12.5033C20.7339 13.2298 20.6079 13.841 20.4455 14.3231C20.2731 14.8346 20.0341 15.2842 19.6076 15.6318C19.1811 15.9793 18.6925 16.1226 18.1568 16.1882C17.6518 16.25 17.0278 16.25 16.2862 16.25L10.8804 16.25C9.53464 16.25 8.44479 16.25 7.58656 16.1283C6.69032 16.0012 5.93752 15.7285 5.34366 15.1022C4.79742 14.526 4.50529 13.9144 4.35897 13.0601C4.22191 12.2598 4.20828 11.2125 4.20828 9.75996V7.03832C4.20828 6.29837 4.20726 5.80316 4.16611 5.42295C4.12678 5.0596 4.05708 4.87818 3.96682 4.74609C3.87876 4.61723 3.74509 4.4968 3.44186 4.34802C3.11902 4.18961 2.68026 4.03406 2.01266 3.79934L1.75145 3.7075C1.36068 3.57012 1.15527 3.14197 1.29266 2.7512ZM5.70828 6.86996L5.70828 9.75996C5.70828 11.249 5.72628 12.1578 5.83744 12.8068C5.93933 13.4018 6.11202 13.7324 6.43219 14.0701C6.70473 14.3576 7.08235 14.5418 7.79716 14.6432C8.53783 14.7482 9.5209 14.75 10.9377 14.75H16.2406C17.0399 14.75 17.5714 14.7487 17.9746 14.6993C18.3573 14.6525 18.5348 14.571 18.66 14.469C18.7853 14.3669 18.9009 14.2095 19.024 13.8441C19.1537 13.4592 19.2623 12.9389 19.4237 12.156L19.9225 9.73591L19.9229 9.73369C20.1005 8.84376 20.217 8.2515 20.2444 7.80793C20.2704 7.38648 20.2043 7.23927 20.1429 7.15786C20.1367 7.15259 20.0931 7.11565 19.9661 7.07101C19.8107 7.01639 19.5895 6.97049 19.2939 6.93745C18.6991 6.87096 17.9454 6.86996 17.089 6.86996H5.70828Z"
-                        fill="#3C50E0"
-                      />
-                      <path
-                        fillRule="evenodd"
-                        clipRule="evenodd"
-                        d="M5.2502 19.5C5.2502 20.7426 6.25756 21.75 7.5002 21.75C8.74285 21.75 9.7502 20.7426 9.7502 19.5C9.7502 18.2573 8.74285 17.25 7.5002 17.25C6.25756 17.25 5.2502 18.2573 5.2502 19.5ZM7.5002 20.25C7.08599 20.25 6.7502 19.9142 6.7502 19.5C6.7502 19.0857 7.08599 18.75 7.5002 18.75C7.91442 18.75 8.2502 19.0857 8.2502 19.5C8.2502 19.9142 7.91442 20.25 7.5002 20.25Z"
-                        fill="#3C50E0"
-                      />
-                      <path
-                        fillRule="evenodd"
-                        clipRule="evenodd"
-                        d="M14.25 19.5001C14.25 20.7427 15.2574 21.7501 16.5 21.7501C17.7426 21.7501 18.75 20.7427 18.75 19.5001C18.75 18.2574 17.7426 17.2501 16.5 17.2501C15.2574 17.2501 14.25 18.2574 14.25 19.5001ZM16.5 20.2501C16.0858 20.2501 15.75 19.9143 15.75 19.5001C15.75 19.0859 16.0858 18.7501 16.5 18.7501C16.9142 18.7501 17.25 19.0859 17.25 19.5001C17.25 19.9143 16.9142 20.2501 16.5 20.2501Z"
-                        fill="#3C50E0"
+                        d="M4 13H10C10.55 13 11 12.55 11 12V4C11 3.45 10.55 3 10 3H4C3.45 3 3 3.45 3 4V12C3 12.55 3.45 13 4 13ZM4 21H10C10.55 21 11 20.55 11 20V16C11 15.45 10.55 15 10 15H4C3.45 15 3 15.45 3 16V20C3 20.55 3.45 21 4 21ZM14 21H20C20.55 21 21 20.55 21 20V12C21 11.45 20.55 11 20 11H14C13.45 11 13 11.45 13 12V20C13 20.55 13.45 21 14 21ZM13 4V8C13 8.55 13.45 9 14 9H20C20.55 9 21 8.55 21 8V4C21 3.45 20.55 3 20 3H14C13.45 3 13 3.45 13 4Z"
+                        fill="currentColor"
                       />
                     </svg>
+                    Dashboard
+                  </Link>
+                )}
 
-                    <span className="flex items-center justify-center font-medium text-2xs absolute -right-2 -top-2.5 bg-blue w-4.5 h-4.5 rounded-full text-white">
-                      {product.length}
+                {(!user || user?.role === "consumer") && (
+                  <button
+                    onClick={handleOpenCartModal}
+                    className="flex items-center gap-2.5"
+                  >
+                    <span className="inline-block relative">
+                      {/* SVG icon */}
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M15.5433 9.5172C15.829 9.21725 15.8174 8.74252 15.5174 8.45686C15.2175 8.17119 14.7428 8.18277 14.4571 8.48272L12.1431 10.9125L11.5433 10.2827C11.2576 9.98277 10.7829 9.97119 10.483 10.2569C10.183 10.5425 10.1714 11.0173 10.4571 11.3172L11.6 12.5172C11.7415 12.6658 11.9378 12.75 12.1431 12.75C12.3483 12.75 12.5446 12.6658 12.6862 12.5172L15.5433 9.5172Z"
+                          fill="#3C50E0"
+                        />
+                        <path
+                          fillRule="evenodd"
+                          clipRule="evenodd"
+                          d="M1.29266 2.7512C1.43005 2.36044 1.8582 2.15503 2.24896 2.29242L2.55036 2.39838C3.16689 2.61511 3.69052 2.79919 4.10261 3.00139C4.54324 3.21759 4.92109 3.48393 5.20527 3.89979C5.48725 4.31243 5.60367 4.76515 5.6574 5.26153C5.66124 5.29706 5.6648 5.33321 5.66809 5.36996L17.1203 5.36996C17.9389 5.36995 18.7735 5.36993 19.4606 5.44674C19.8103 5.48584 20.1569 5.54814 20.4634 5.65583C20.7639 5.76141 21.0942 5.93432 21.3292 6.23974C21.711 6.73613 21.7777 7.31414 21.7416 7.90034C21.7071 8.45845 21.5686 9.15234 21.4039 9.97723L21.3935 10.0295L21.3925 10.0341L20.8836 12.5033C20.7339 13.2298 20.6079 13.841 20.4455 14.3231C20.2731 14.8346 20.0341 15.2842 19.6076 15.6318C19.1811 15.9793 18.6925 16.1226 18.1568 16.1882C17.6518 16.25 17.0278 16.25 16.2862 16.25L10.8804 16.25C9.53464 16.25 8.44479 16.25 7.58656 16.1283C6.69032 16.0012 5.93752 15.7285 5.34366 15.1022C4.79742 14.526 4.50529 13.9144 4.35897 13.0601C4.22191 12.2598 4.20828 11.2125 4.20828 9.75996V7.03832C4.20828 6.29837 4.20726 5.80316 4.16611 5.42295C4.12678 5.0596 4.05708 4.87818 3.96682 4.74609C3.87876 4.61723 3.74509 4.4968 3.44186 4.34802C3.11902 4.18961 2.68026 4.03406 2.01266 3.79934L1.75145 3.7075C1.36068 3.57012 1.15527 3.14197 1.29266 2.7512ZM5.70828 6.86996L5.70828 9.75996C5.70828 11.249 5.72628 12.1578 5.83744 12.8068C5.93933 13.4018 6.11202 13.7324 6.43219 14.0701C6.70473 14.3576 7.08235 14.5418 7.79716 14.6432C8.53783 14.7482 9.5209 14.75 10.9377 14.75H16.2406C17.0399 14.75 17.5714 14.7487 17.9746 14.6993C18.3573 14.6525 18.5348 14.571 18.66 14.469C18.7853 14.3669 18.9009 14.2095 19.024 13.8441C19.1537 13.4592 19.2623 12.9389 19.4237 12.156L19.9225 9.73591L19.9229 9.73369C20.1005 8.84376 20.217 8.2515 20.2444 7.80793C20.2704 7.38648 20.2043 7.23927 20.1429 7.15786C20.1367 7.15259 20.0931 7.11565 19.9661 7.07101C19.8107 7.01639 19.5895 6.97049 19.2939 6.93745C18.6991 6.87096 17.9454 6.86996 17.089 6.86996H5.70828Z"
+                          fill="#3C50E0"
+                        />
+                        <path
+                          fillRule="evenodd"
+                          clipRule="evenodd"
+                          d="M5.2502 19.5C5.2502 20.7426 6.25756 21.75 7.5002 21.75C8.74285 21.75 9.7502 20.7426 9.7502 19.5C9.7502 18.2573 8.74285 17.25 7.5002 17.25C6.25756 17.25 5.2502 18.2573 5.2502 19.5ZM7.5002 20.25C7.08599 20.25 6.7502 19.9142 6.7502 19.5C6.7502 19.0857 7.08599 18.75 7.5002 18.75C7.91442 18.75 8.2502 19.0857 8.2502 19.5C8.2502 19.9142 7.91442 20.25 7.5002 20.25Z"
+                          fill="#3C50E0"
+                        />
+                        <path
+                          fillRule="evenodd"
+                          clipRule="evenodd"
+                          d="M14.25 19.5001C14.25 20.7427 15.2574 21.7501 16.5 21.7501C17.7426 21.7501 18.75 20.7427 18.75 19.5001C18.75 18.2574 17.7426 17.2501 16.5 17.2501C15.2574 17.2501 14.25 18.2574 14.25 19.5001ZM16.5 20.2501C16.0858 20.2501 15.75 19.9143 15.75 19.5001C15.75 19.0859 16.0858 18.7501 16.5 18.7501C16.9142 18.7501 17.25 19.0859 17.25 19.5001C17.25 19.9143 16.9142 20.2501 16.5 20.2501Z"
+                          fill="#3C50E0"
+                        />
+                      </svg>
+                      <span className="flex items-center justify-center font-medium text-2xs absolute -right-2 -top-2.5 bg-blue w-4.5 h-4.5 rounded-full text-white">
+                        {product.length}
+                      </span>
                     </span>
-                  </span>
 
-                  <div>
-                    <span className="block text-2xs text-dark-4 uppercase">
-                      cart
-                    </span>
-                    <p className="font-medium text-custom-sm text-dark">
-                      ${totalPrice}
-                    </p>
-                  </div>
-                </button>
+                    <div className="hidden sm:block">
+                      <span className="block text-2xs text-dark-4 uppercase">
+                        cart
+                      </span>
+                      <p className="font-medium text-custom-sm text-dark">
+                        ${totalPrice}
+                      </p>
+                    </div>
+                  </button>
+                )}
               </div>
               {/* Hamburger Toggle BTN */}
               <button
@@ -304,31 +330,10 @@ const Header = () => {
               {/* Hamburger Toggle BTN */}
               {/* Logout button moved to far right */}
 
-              {isAuthenticated && user?.role === "provider" && (
-                <Link
-                  href="/dashboard/provider"
-                  className="px-3 py-1 rounded bg-green-600 hover:bg-green-700 text-sm text-white flex items-center gap-2"
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <rect width="24" height="24" fill="none" />
-                    <path
-                      d="M4 13H10C10.55 13 11 12.55 11 12V4C11 3.45 10.55 3 10 3H4C3.45 3 3 3.45 3 4V12C3 12.55 3.45 13 4 13ZM4 21H10C10.55 21 11 20.55 11 20V16C11 15.45 10.55 15 10 15H4C3.45 15 3 15.45 3 16V20C3 20.55 3.45 21 4 21ZM14 21H20C20.55 21 21 20.55 21 20V12C21 11.45 20.55 11 20 11H14C13.45 11 13 11.45 13 12V20C13 20.55 13.45 21 14 21ZM13 4V8C13 8.55 13.45 9 14 9H20C20.55 9 21 8.55 21 8V4C21 3.45 20.55 3 20 3H14C13.45 3 13 3.45 13 4Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  Dashboard
-                </Link>
-              )}
               {isAuthenticated && (
                 <button
                   onClick={handleLogout}
-                  className="ml-4 px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-sm text-dark"
+                  className="hidden sm:block ml-4 px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-sm text-dark"
                 >
                   Logout
                 </button>
