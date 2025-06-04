@@ -52,7 +52,7 @@ router.get(
       secure: process.env.NODE_ENV === "production",
       sameSite: "Lax",
     });
-    res.redirect("http://localhost:3000/"); // Redirect to your frontend dashboard
+    res.redirect("https://local-loop-liard.vercel.app/"); // Redirect to your frontend dashboard
   }
 );
 
