@@ -265,85 +265,77 @@ const getProviderRevenue = async (req, res) => {
         break;
     }
 
-    const { data: orderItems, error } = await supabase
-      .from("order_items")
-      .select(
-        `
+    // --- Regular Orders Revenue
+    const { data: orderItems, error: orderError } = await supabase.from(
+      "order_items"
+    ).select(`
+      id,
+      quantity,
+      unit_price,
+      product_id,
+      order_id,
+      products:product_id (
         id,
-        quantity,
-        unit_price,
-        product_id,
-        order_id,
-        products:product_id (
-          id,
-          name,
-          price,
-          producer_id
-        ),
-        orders:order_id (
-          id,
-          status,
-          created_at
-        )
-      `
-      );
+        producer_id
+      ),
+      orders:order_id (
+        id,
+        status,
+        created_at,
+        total_price
+      )
+    `);
 
-    if (error) {
+    if (orderError) {
       return res.status(500).json({
-        message: "Failed to fetch order items",
-        error,
+        message: "Failed to fetch regular order items",
+        error: orderError,
       });
     }
 
-    const filteredItems = orderItems.filter((item) => {
+    const seenOrderIds = new Set();
+    let regularRevenue = 0;
+
+    orderItems.forEach((item) => {
       const isOwned = item.products?.producer_id === providerId;
       const isCompleted = item.orders?.status === "paid";
       const isInTimeframe =
         !startDate || new Date(item.orders?.created_at) >= startDate;
-      return isOwned && isCompleted && isInTimeframe;
+
+      if (isOwned && isCompleted && isInTimeframe) {
+        const orderId = item.orders?.id;
+        if (orderId && !seenOrderIds.has(orderId)) {
+          regularRevenue += parseFloat(item.orders?.total_price || 0);
+          seenOrderIds.add(orderId);
+        }
+      }
     });
 
-    const totalRevenue = filteredItems.reduce((acc, item) => {
-      return acc + (item.quantity || 0) * (item.unit_price || 0);
-    }, 0);
-
-    const productSales = filteredItems.reduce((acc, item) => {
-      const product = item.products;
-      if (!product) return acc;
-
-      if (!acc[product.id]) {
-        acc[product.id] = {
-          product,
-          quantity: 0,
-          total_revenue: 0,
-        };
+    // --- Group Order Revenue via RPC
+    const { data: groupRevenueResult, error: rpcError } = await supabase.rpc(
+      "get_group_revenue_by_provider",
+      {
+        provider_id: providerId,
+        start_from: startDate || null,
       }
-      acc[product.id].quantity += item.quantity || 0;
-      acc[product.id].total_revenue +=
-        (item.quantity || 0) * (item.unit_price || 0);
+    );
 
-      return acc;
-    }, {});
+    if (rpcError) {
+      return res.status(500).json({
+        message: "Failed to fetch group order revenue",
+        error: rpcError,
+      });
+    }
 
-    const topProducts = Object.values(productSales)
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 5)
-      .map(({ product, quantity, total_revenue }) => ({
-        product_id: product.id,
-        name: product.name,
-        quantity,
-        total_revenue: parseFloat(total_revenue.toFixed(2)),
-        unit_price: product.price || 0,
-      }));
+    const groupRevenue = parseFloat(groupRevenueResult || 0);
+    const totalRevenue = parseFloat((regularRevenue + groupRevenue).toFixed(2));
 
     return res.status(200).json({
       revenue: {
-        orders: parseFloat(totalRevenue.toFixed(2)),
-        total: parseFloat(totalRevenue.toFixed(2)),
+        total: totalRevenue,
       },
       timeframe: timeframe || "all",
-      topProducts,
-      orderCount: filteredItems.length,
+      orderCount: seenOrderIds.size,
       timestamp: new Date(),
     });
   } catch (err) {
@@ -413,7 +405,7 @@ const getProviderOrders = async (req, res) => {
               quantity: item.quantity,
               unit_price: item.unit_price,
             },
-            total_price: Number(item.unit_price) * item.quantity,
+            total_price: order.total_price,
           });
         });
     });
