@@ -26,7 +26,7 @@ const Signin = () => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_NEXT_PUBLIC_API_BASE}/auth/login`,
+        `${process.env.NEXT_PUBLIC_API_BASE}/auth/login`,
         {
           method: "POST",
           credentials: "include",
