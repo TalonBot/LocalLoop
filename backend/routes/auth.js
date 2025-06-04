@@ -50,7 +50,7 @@ router.get(
     res.cookie("session_id", req.user.sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
+      sameSite: "None",
     });
     res.redirect("https://local-loop-liard.vercel.app/"); // Redirect to your frontend dashboard
   }
