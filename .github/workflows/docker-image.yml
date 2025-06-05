@@ -1,0 +1,25 @@
+name: Docker Image CI & Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (CI check)
+        run: docker build . --file Dockerfile --tag my-backend:ci
+
+      - name: Trigger Render Deploy Hook
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
