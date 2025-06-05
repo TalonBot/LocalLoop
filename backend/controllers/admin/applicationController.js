@@ -238,21 +238,14 @@ const getMonthlyProviderProfits = async (req, res) => {
     const pStartDate = startDate ? startDate.toISOString() : null;
     const pEndDate = endDate ? endDate.toISOString() : null;
 
-    let providerName = "N/A";
-    let providerEmail = "N/A";
-
     const { data: providerData, error: providerError } = await supabase
       .from("users")
       .select("full_name, email")
       .eq("id", providerId)
       .single();
 
-    if (providerError) {
-      console.warn("Failed to fetch provider info:", providerError.message);
-    } else if (providerData) {
-      providerName = providerData.full_name || "N/A";
-      providerEmail = providerData.email || "N/A";
-    }
+    const providerName = providerData?.full_name || "N/A";
+    const providerEmail = providerData?.email || "N/A";
 
     const { data: regularOrdersData, error: regularError } = await supabase.rpc(
       "get_regular_provider_orders",
@@ -297,7 +290,7 @@ const getMonthlyProviderProfits = async (req, res) => {
     );
 
     const { data: groupItemsData, error: groupError } = await supabase.rpc(
-      "get_group_provider_participant_items",
+      "get_group_provider_participant_items12",
       {
         p_provider_id: providerId,
         p_start_date: pStartDate,
@@ -326,24 +319,16 @@ const getMonthlyProviderProfits = async (req, res) => {
     }));
 
     const totalGroupRevenue = filteredGroupItems.reduce(
-      (acc, item) => acc + item.total_revenue,
+      (acc, item) => acc + item.total_price,
       0
     );
 
-    const deliveryFeePerOrder = 15;
-    const deliveryCount = filteredGroupItems.filter(
-      (i) => i.pickup_or_delivery === "delivery"
-    ).length;
-    const totalDeliveryFees = deliveryCount * deliveryFeePerOrder;
-
-    const combinedRevenue =
-      totalRegularRevenue + totalGroupRevenue + totalDeliveryFees;
+    const combinedRevenue = totalRegularRevenue + totalGroupRevenue;
 
     return res.status(200).json({
       revenue: {
         regular_orders: parseFloat(totalRegularRevenue.toFixed(2)),
         group_orders: parseFloat(totalGroupRevenue.toFixed(2)),
-        delivery_fees: totalDeliveryFees,
         total: parseFloat(combinedRevenue.toFixed(2)),
       },
       timeframe: month && year ? `${month}-${year}` : timeframe || "all",

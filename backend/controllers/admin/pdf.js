@@ -49,7 +49,7 @@ function generatePdf(data, res) {
         "Total Orders": data.orderCount,
         "Regular Orders Revenue": revenue.regular_orders.toFixed(2) + " €",
         "Group Orders Revenue": revenue.group_orders.toFixed(2) + " €",
-        "Delivery Fees": revenue.delivery_fees.toFixed(2) + " €",
+
         "Total Revenue": revenue.total.toFixed(2) + " €",
       }).map(([label, val]) => [label, { text: val, alignment: "right" }]),
     },
