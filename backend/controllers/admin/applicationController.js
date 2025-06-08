@@ -120,8 +120,8 @@ const reviewProducerApplication = async (req, res) => {
       .json({ error: "Admin notes required when rejecting an application" });
   }
 
-  // Update status and admin notes
-  const { error } = await supabase
+  // Update application status and notes
+  const { error: updateError } = await supabase
     .from("producer_applications")
     .update({
       status,
@@ -130,7 +130,20 @@ const reviewProducerApplication = async (req, res) => {
     })
     .eq("id", id);
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (updateError) return res.status(500).json({ error: updateError.message });
+
+  // If approved, update user role to 'provider'
+  if (status === "approved") {
+    const { error: roleUpdateError } = await supabase
+      .from("users")
+      .update({ role: "provider" })
+      .eq("id", application.user_id);
+
+    if (roleUpdateError) {
+      console.error("Failed to update user role:", roleUpdateError);
+      return res.status(500).json({ error: "Failed to update user role" });
+    }
+  }
 
   const userEmail = application.users?.email;
   const userFullName = application.users?.full_name || "Applicant";
