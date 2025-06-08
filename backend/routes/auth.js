@@ -52,7 +52,7 @@ router.get(
       secure: process.env.NODE_ENV === "production",
       sameSite: "None",
     });
-    res.redirect("https://https://local-loop-five.vercel.app/"); // Redirect to your frontend dashboard
+    res.redirect("https://local-loop-five.vercel.app/"); // Redirect to your frontend dashboard
   }
 );
 
