@@ -43,3 +43,6 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t my-backend:ci .
+      
+      - name: Trigger Render Deploy
+        run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
