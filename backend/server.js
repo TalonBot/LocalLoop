@@ -25,6 +25,7 @@ const usersRoutes = require("./routes/users");
 const locationRoutes = require("./routes/location");
 //dodano
 const publicRoutes = require("./routes/public");
+const ratingRoutes = require("./routes/rating");
 
 app.use("/public", publicRoutes);
 app.use("/auth", authRoutes);
@@ -35,6 +36,7 @@ app.use("/", checkoutRoutes);
 app.use("/admin", adminRoutes);
 app.use("/users", usersRoutes);
 app.use("/location", locationRoutes);
+app.use("/rating", ratingRoutes);
 
 module.exports = app;
 

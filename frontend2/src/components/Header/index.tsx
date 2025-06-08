@@ -380,6 +380,20 @@ const Header = () => {
                       </li>
                     )
                   )}
+
+                      {isAuthenticated && user?.role === "consumer" && (
+                      <li className="group relative">
+                        <Link
+                          href="/apply"
+                          className={`hover:text-blue text-custom-sm font-medium text-dark flex ${
+                            stickyMenu ? "xl:py-4" : "xl:py-6"
+                          }`}
+                        >
+                          Become a Provider
+                        </Link>
+                      </li>
+                    )}
+                  
                 </ul>
               </nav>
               {/* //   <!-- Main Nav End --> */}
