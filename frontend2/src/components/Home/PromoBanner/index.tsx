@@ -11,6 +11,34 @@ import {
   Mail,
 } from "lucide-react";
 
+const categoryColors = {
+  farm: "bg-green-600",
+  bakery: "bg-red-500",
+  dairy: "bg-blue-500",
+  specialty: "bg-yellow-500",
+  coffee: "bg-orange-600",
+};
+
+const getDistanceFromLatLonInKm = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number => {
+  const R = 6371; // Earth's radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+
 const assignMockPositions = (data) => {
   const positions = [
     { top: "20%", left: "25%" },
@@ -21,10 +49,28 @@ const assignMockPositions = (data) => {
   ];
   return data.map((item, index) => ({
     ...item,
-    position: positions[index % positions.length], // Cycle through mock positions
-    color: "bg-green-500", // Or later use category-based color
+    position: positions[index % positions.length],
+    color: categoryColors[item.category?.toLowerCase()] || "bg-gray-400",
   }));
 };
+
+const calculateAvgDistance = (producers: any[], userLat: number, userLng: number): number => {
+  if (!producers || producers.length === 0) return 0;
+
+  const totalDistance = producers.reduce((acc, producer) => {
+    if (producer.latitude && producer.longitude) {
+      const distance = getDistanceFromLatLonInKm(userLat, userLng, producer.latitude, producer.longitude);
+      return acc + distance;
+    }
+    return acc;
+  }, 0);
+
+  return Number((totalDistance / producers.length).toFixed(2));
+};
+
+
+
+
 
 const LocalProducerMap = () => {
   const [selectedProducer, setSelectedProducer] = useState(null);
@@ -34,6 +80,22 @@ const LocalProducerMap = () => {
     lat: number;
     lng: number;
   } | null>(null);
+const [avgRating, setAvgRating] = useState<number | null>(null);
+const [avgDistance, setAvgDistance] = useState<number | null>(null);
+
+
+useEffect(() => {
+  const fetchAvgRating = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/rating/average");
+      const data = await response.json();
+      setAvgRating(data.averageRating);
+    } catch (err) {
+      console.error("Failed to fetch average rating:", err);
+    }
+  };
+  fetchAvgRating();
+}, []);
 
   useEffect(() => {
     let hasSentLocation = false;
@@ -75,19 +137,20 @@ const LocalProducerMap = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (userLocation) {
-      fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/location/nearby-producers?lat=${userLocation.lat}&lng=${userLocation.lng}`
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          const withPositions = assignMockPositions(data);
-          setProducers(withPositions);
-        })
-        .catch((err) => console.error("Error fetching nearby producers:", err));
-    }
-  }, [userLocation]);
+ useEffect(() => {
+  if (userLocation) {
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE}/location/nearby-producers?lat=${userLocation.lat}&lng=${userLocation.lng}&category=${activeCategory}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        const withPositions = assignMockPositions(data);
+        setProducers(withPositions);
+      })
+      .catch((err) => console.error("Error fetching nearby producers:", err));
+  }
+}, [userLocation, activeCategory]);
+
 
   // Mock data for local producers
   const [producers, setProducers] = useState<any[]>([]); // Adjust type if needed
@@ -97,7 +160,7 @@ const LocalProducerMap = () => {
     { id: "farm", label: "Farms", color: "bg-green-600" },
     { id: "bakery", label: "Bakeries", color: "bg-amber-600" },
     { id: "dairy", label: "Dairy", color: "bg-blue-600" },
-    { id: "producer", label: "Specialty", color: "bg-yellow-600" },
+    { id: "specialty", label: "Specialty", color: "bg-yellow-600" },
     { id: "coffee", label: "Coffee", color: "bg-orange-700" },
   ];
 
@@ -112,6 +175,17 @@ const LocalProducerMap = () => {
   //     producer.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
   //   return matchesCategory && matchesSearch;
   // });
+
+useEffect(() => {
+  if (userLocation && producers.length > 0) {
+    const average = calculateAvgDistance(producers, userLocation.lat, userLocation.lng);
+    setAvgDistance(average);
+  } else {
+    setAvgDistance(null);
+  }
+}, [producers, userLocation]);
+
+
 
   const renderStars = (rating) => {
     const totalStars = 5;
@@ -393,11 +467,13 @@ const LocalProducerMap = () => {
             <div className="text-gray-600">Local Producers</div>
           </div>
           <div className="text-center bg-white rounded-lg p-6 shadow-lg">
-            <div className="text-3xl font-bold text-green-600 mb-2">4.8</div>
+            <div className="text-3xl font-bold text-green-600 mb-2">{avgRating !== null ? avgRating.toFixed(1) : "N/A"}</div>
             <div className="text-gray-600">Average Rating</div>
           </div>
           <div className="text-center bg-white rounded-lg p-6 shadow-lg">
-            <div className="text-3xl font-bold text-orange-600 mb-2">2.5km</div>
+            <div className="text-3xl font-bold text-orange-600 mb-2">
+                {avgDistance !== null ? `${avgDistance} km` : "N/A"}
+              </div>
             <div className="text-gray-600">Avg Distance</div>
           </div>
           <div className="text-center bg-white rounded-lg p-6 shadow-lg">

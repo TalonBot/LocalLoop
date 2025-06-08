@@ -18,6 +18,7 @@ import PreLoader from "@/components/Common/PreLoader";
 import { PersistGate } from "redux-persist/integration/react";
 import { persistor, store } from "@/redux/store";
 import { Provider } from "react-redux";
+import { Toaster } from "react-hot-toast";
 
 export default function RootLayout({
   children,
@@ -44,6 +45,7 @@ export default function RootLayout({
                   <ModalProvider>
                     <PreviewSliderProvider>
                       <Header />
+                      <Toaster position="bottom-center" />
                       {children}
                       <QuickViewModal />
                       <CartSidebarModal />
