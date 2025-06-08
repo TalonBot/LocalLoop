@@ -87,7 +87,7 @@ const [avgDistance, setAvgDistance] = useState<number | null>(null);
 useEffect(() => {
   const fetchAvgRating = async () => {
     try {
-      const response = await fetch("http://localhost:5000/rating/average");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/rating/average`);
       const data = await response.json();
       setAvgRating(data.averageRating);
     } catch (err) {
