@@ -55,11 +55,13 @@ router.get(
       sameSite: isDevelopment ? "Lax" : "None",
     });
 
+
     const redirectUrl = isDevelopment
       ? "http://localhost:3000/"
       : "https://local-loop-five.vercel.app/";
 
     res.redirect(redirectUrl);
+
   }
 );
 
