@@ -65,12 +65,14 @@ const loginUser = async (req, res) => {
       { EX: 900 }
     );
 
+    const isDevelopment = process.env.NODE_ENV === "development";
+
     res.cookie("session_id", sessionId, {
       path: "/",
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "None",
-      //domain: ".",
+      secure: !isDevelopment,
+      sameSite: isDevelopment ? "Lax" : "None",
+      // domain: ".",
     });
 
     res.status(200).json({

@@ -40,6 +40,8 @@ router.get(
 );
 
 // Google OAuth callback
+const isDevelopment = process.env.NODE_ENV === "development";
+
 router.get(
   "/google/callback",
   passport.authenticate("google", {
@@ -49,10 +51,15 @@ router.get(
   (req, res) => {
     res.cookie("session_id", req.user.sessionId, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "None",
+      secure: !isDevelopment,
+      sameSite: isDevelopment ? "Lax" : "None",
     });
-    res.redirect("https://local-loop-five.vercel.app/"); // Redirect to your frontend dashboard
+
+    const redirectUrl = isDevelopment
+      ? "http://localhost:3000/"
+      : "https://local-loop-five.vercel.app/";
+
+    res.redirect(redirectUrl);
   }
 );
 
