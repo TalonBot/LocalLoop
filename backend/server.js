@@ -7,9 +7,14 @@ const port = 5000;
 app.use(cookieParser());
 app.use("/webhook", require("./routes/webhook"));
 app.use(express.json());
+
+const isDevelopment = process.env.NODE_ENV === "development";
+const allowedOrigin = isDevelopment
+  ? "http://localhost:3000"
+  : "https://local-loop-five.vercel.app";
 app.use(
   cors({
-    origin: "https://local-loop-five.vercel.app",
+    origin: allowedOrigin,
     credentials: true,
   })
 );
