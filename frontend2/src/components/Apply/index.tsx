@@ -62,8 +62,9 @@ const ApplyForm = () => {
       <h2 className="text-2xl font-bold text-center">Provider Application</h2>
 
       <div>
-        <label className="block text-sm font-medium mb-1">Business Name</label>
+        <label htmlFor="businessName" className="block text-sm font-medium mb-1">Business Name</label>
         <input
+          id="businessName"
           type="text"
           value={businessName}
           onChange={(e) => setBusinessName(e.target.value)}
@@ -73,8 +74,9 @@ const ApplyForm = () => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">Reason</label>
+        <label htmlFor="reason" className="block text-sm font-medium mb-1">Reason</label>
         <textarea
+          id="reason"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           required
