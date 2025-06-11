@@ -1,0 +1,32 @@
+Localloop
+
+LocalLoop povezuje uporabnike, ki si želijo lokalno, svežo hrano, in pridelovalce v njihovi bližini, kateri prodajajo svoje domače, lokalne izdelke.
+
+Tilen Gabor
+Georgi Dimov
+Anastasija Nechoska
+
+Domača stran: https://local-loop-five.vercel.app/
+
+Viri: 
+https://nextjs.org/docs
+
+https://supabase.com/docs
+
+https://stripe.com/docs
+
+https://react-hook-form.com/
+
+https://tailwindcss.com/docs
+
+https://testing-library.com/
+
+https://vercel.com/docs
+
+Koda: https://github.com/TalonBot/LocalLoop
+
+Kategorizacija: spletna aplikacija, mobilno prijazna platforma, spletna tržnica, interaktivna karta, informacijska rešitev za lokalno skupnost
+
+Oznake: Supabase, Next.js, typescript, React, Express, Node.js, Stripe, Redis, REST API, SendGrid, GitHub, AgilenRazvoj, UporabaAI, Vercel, CSRF, OAuth, Middleware, Docker, Tailwind css, JWT, Multer, Node-Cron, PDFMake, Express Validator, Rate Limiting, Jest, Supertest, Nodemon.
+
+LocalLoop je sodobna spletna platforma, ki povezuje lokalne pridelovalce, obrtnike in potrošnike v trajnostni verigi oskrbe. Uporabniki lahko z interaktivnim zemljevidom poiščejo lokalne ponudnike glede na kategorijo, oddajo skupinska ali individualna naročila in plačajo prek Stripa. Ponudniki imajo na voljo lastno nadzorno ploščo za upravljanje izdelkov, naročil in svojega profila. Sistem uporablja Supabase kot varno podatkovno bazo, autentikacijo preko OAuth, Redis za predpomnjenje, ter pošiljanje kuponov po e-pošti s SendGridom. Celoten razvoj sledi agilnemu pristopu z uporabo GitHuba. Lokalni poudarek in sodobna tehnologija omogočata trajnostno alternativo masovnemu spletnemu nakupovanju.
