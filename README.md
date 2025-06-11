@@ -184,3 +184,15 @@ Frontend bo dosegljiv na: `http://localhost:3000`
 - ✅ CI/CD avtomatizacija je vpeljana (Docker build + testiranje + Render webhook).
 - ✅ Frontend se samodejno posodablja prek Vercela.
 - ✅ Vzpostavljena je stabilna infrastruktura za nadaljnjo rabo ali širitev.
+
+
+---
+
+## Dostop do gostovane aplikacije
+
+Platformo lahko obiščete na:  
+[https://local-loop-five.vercel.app/](https://local-loop-five.vercel.app/)  
+
+
+---
+
