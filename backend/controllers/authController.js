@@ -62,7 +62,7 @@ const loginUser = async (req, res) => {
         name: data.full_name,
         email: data.email,
       }),
-      { EX: 900 }
+      { EX: 3600 }
     );
 
     const isDevelopment = process.env.NODE_ENV === "development";
@@ -317,7 +317,7 @@ passport.use(
             role: user.role,
             email: user.email,
           }),
-          { EX: 900 }
+          { EX: 3600 }
         );
 
         done(null, { sessionId, user });
